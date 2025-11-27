@@ -8,10 +8,10 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Framer Motion via CDN -->
+    <!-- Framer Motion -->
     <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
     
-    <!-- React & ReactDOM via CDN -->
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
@@ -22,7 +22,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* Material Glass Effect */
         .material-glass {
             background: rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(6px);
@@ -32,7 +31,6 @@
             box-shadow: 0 6px 24px rgba(31, 38, 135, 0.65);
         }
         
-        /* Ripple effect */
         .ripple {
             position: relative;
             overflow: hidden;
@@ -56,74 +54,44 @@
             height: 300px;
         }
         
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.5);
-        }
-        
-        /* Video container aspect ratio */
         .video-container {
             aspect-ratio: 9/16;
         }
         
-        /* Animations */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .snap-y {
+            scroll-snap-type: y mandatory;
         }
         
-        @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+        .snap-start {
+            scroll-snap-align: start;
         }
         
-        .animate-fade-in-up {
-            animation: fadeInUp 0.5s ease-out;
+        /* Hide scrollbar but keep functionality */
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         
-        .animate-scale-in {
-            animation: scaleIn 0.3s ease-out;
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
         }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 font-['Inter']">
+<body class="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600">
     <div id="root"></div>
 
     <script type="text/babel">
-        // Supabase Client
+        const { useState, useEffect, useRef } = React;
+        const { motion, AnimatePresence } = window.framerMotion;
+
+        // Supabase Configuration - USING YOUR PROVIDED CREDENTIALS
         const supabaseUrl = "https://xqecfotbhbccrlamioft.supabase.co";
         const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxZWNmb3RiaGJjY3JsYW1pb2Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMzAzNDksImV4cCI6MjA3OTgwNjM0OX0.aoSZSHK91Ota15IcExrfXZqN0FOQ8cXGWgujy9ECZOg";
         
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        const { motion, AnimatePresence } = window.framerMotion;
 
         // Left Sidebar Component
         function SidebarLeft({ onUploadClick, onSearchClick }) {
-            const buttonVariants = {
-                hover: {
-                    scale: 1.05,
-                    boxShadow: "0 10px 30px rgba(255, 255, 255, 0.4)",
-                    transition: { duration: 0.2 }
-                },
-                tap: {
-                    scale: 0.95
-                }
-            };
-
             return React.createElement(motion.div, {
                 initial: { x: -100, opacity: 0 },
                 animate: { x: 0, opacity: 1 },
@@ -146,13 +114,10 @@
                             React.createElement("p", { className: "text-white text-opacity-80 text-sm" }, "Tajib Creator")
                         )
                     ),
-
-                    // Action Buttons
                     React.createElement("div", { className: "space-y-4 flex-1" },
                         React.createElement(motion.button, {
-                            variants: buttonVariants,
-                            whileHover: "hover",
-                            whileTap: "tap",
+                            whileHover: { scale: 1.05, boxShadow: "0 10px 30px rgba(255, 255, 255, 0.4)" },
+                            whileTap: { scale: 0.95 },
                             onClick: onUploadClick,
                             className: "w-full ripple bg-white bg-opacity-20 text-white py-3 px-4 rounded-lg font-medium text-left flex items-center space-x-3"
                         },
@@ -160,9 +125,8 @@
                             React.createElement("span", null, "Upload Tajib")
                         ),
                         React.createElement(motion.button, {
-                            variants: buttonVariants,
-                            whileHover: "hover",
-                            whileTap: "tap",
+                            whileHover: { scale: 1.05, boxShadow: "0 10px 30px rgba(255, 255, 255, 0.4)" },
+                            whileTap: { scale: 0.95 },
                             onClick: onSearchClick,
                             className: "w-full ripple bg-white bg-opacity-20 text-white py-3 px-4 rounded-lg font-medium text-left flex items-center space-x-3"
                         },
@@ -170,8 +134,6 @@
                             React.createElement("span", null, "Search Tajibs")
                         )
                     ),
-
-                    // Footer
                     React.createElement(motion.div, {
                         initial: { y: 20, opacity: 0 },
                         animate: { y: 0, opacity: 1 },
@@ -191,18 +153,6 @@
                 { icon: '👤', label: 'Profile', count: '' }
             ];
 
-            const iconVariants = {
-                hover: {
-                    scale: 1.15,
-                    rotate: 5,
-                    transition: { duration: 0.2 }
-                },
-                tap: {
-                    scale: 0.9,
-                    rotate: -5
-                }
-            };
-
             return React.createElement(motion.div, {
                 initial: { x: 100, opacity: 0 },
                 animate: { x: 0, opacity: 1 },
@@ -219,9 +169,8 @@
                             className: "flex flex-col items-center space-y-2"
                         },
                             React.createElement(motion.button, {
-                                variants: iconVariants,
-                                whileHover: "hover",
-                                whileTap: "tap",
+                                whileHover: { scale: 1.15, rotate: 5 },
+                                whileTap: { scale: 0.9, rotate: -5 },
                                 className: "w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-lg ripple"
                             }, action.icon),
                             React.createElement("span", { className: "text-white text-sm font-medium" }, action.count),
@@ -240,7 +189,8 @@
 
             React.useEffect(() => {
                 const videoElement = videoRef.current;
-                
+                if (!videoElement) return;
+
                 const handleLoadStart = () => setIsLoading(true);
                 const handleLoadedData = () => setIsLoading(false);
                 const handlePlay = () => setIsPlaying(true);
@@ -264,7 +214,7 @@
                     videoElement.removeEventListener('play', handlePlay);
                     videoElement.removeEventListener('pause', handlePause);
                 };
-            }, [isActive]);
+            }, [isActive, video.url]);
 
             return React.createElement(motion.div, {
                 layout: true,
@@ -272,7 +222,6 @@
                 whileHover: { scale: 1.02 },
                 transition: { type: "spring", stiffness: 300 }
             },
-                // Video Element
                 React.createElement("video", {
                     ref: videoRef,
                     src: video.url,
@@ -280,10 +229,8 @@
                     muted: true,
                     playsInline: true,
                     className: "w-full h-full object-cover",
-                    poster: video.thumbnail
+                    onError: (e) => console.error('Video loading error:', e)
                 }),
-
-                // Loading Spinner
                 isLoading && React.createElement("div", { 
                     className: "absolute inset-0 flex items-center justify-center" 
                 },
@@ -293,8 +240,6 @@
                         className: "w-12 h-12 border-4 border-white border-opacity-30 border-t-white rounded-full"
                     })
                 ),
-
-                // Video Info Overlay
                 React.createElement("div", { 
                     className: "absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent" 
                 },
@@ -303,7 +248,7 @@
                         animate: { y: 0, opacity: 1 },
                         transition: { delay: 0.2 },
                         className: "text-white font-semibold text-lg mb-2"
-                    }, video.caption),
+                    }, video.caption || "Untitled Tajib"),
                     React.createElement(motion.p, {
                         initial: { y: 20, opacity: 0 },
                         animate: { y: 0, opacity: 1 },
@@ -311,8 +256,6 @@
                         className: "text-white text-opacity-80 text-sm"
                     }, `@${video.username || 'tajibCreator'}`)
                 ),
-
-                // Play/Pause Indicator
                 React.createElement(AnimatePresence, null,
                     !isPlaying && isActive && React.createElement(motion.div, {
                         initial: { scale: 0, opacity: 0 },
@@ -339,7 +282,7 @@
                 const { scrollTop, clientHeight } = e.target;
                 const newIndex = Math.round(scrollTop / clientHeight);
                 
-                if (newIndex !== currentIndex) {
+                if (newIndex !== currentIndex && newIndex >= 0 && newIndex < videos.length) {
                     setCurrentIndex(newIndex);
                 }
             };
@@ -348,23 +291,40 @@
                 e.preventDefault();
                 const direction = e.deltaY > 0 ? 1 : -1;
                 const newIndex = Math.max(0, Math.min(videos.length - 1, currentIndex + direction));
-                setCurrentIndex(newIndex);
                 
-                // Scroll to position
-                if (feedRef.current) {
-                    feedRef.current.scrollTo({
-                        top: newIndex * feedRef.current.clientHeight,
-                        behavior: 'smooth'
-                    });
+                if (newIndex !== currentIndex) {
+                    setCurrentIndex(newIndex);
+                    if (feedRef.current) {
+                        feedRef.current.scrollTo({
+                            top: newIndex * feedRef.current.clientHeight,
+                            behavior: 'smooth'
+                        });
+                    }
                 }
             };
 
             React.useEffect(() => {
                 const feed = feedRef.current;
-                if (feed) {
-                    feed.scrollTop = currentIndex * feed.clientHeight;
+                if (feed && videos.length > 0) {
+                    const scrollToIndex = Math.min(currentIndex, videos.length - 1);
+                    feed.scrollTop = scrollToIndex * feed.clientHeight;
                 }
-            }, [currentIndex]);
+            }, [currentIndex, videos.length]);
+
+            if (videos.length === 0) {
+                return React.createElement(motion.div, {
+                    initial: { opacity: 0, scale: 0.97 },
+                    animate: { opacity: 1, scale: 1 },
+                    transition: { duration: 0.5 },
+                    className: "flex-1 max-w-md h-screen flex items-center justify-center"
+                },
+                    React.createElement("div", { className: "text-center text-white" },
+                        React.createElement("div", { className: "text-6xl mb-4" }, "🎬"),
+                        React.createElement("h2", { className: "text-2xl font-bold mb-2" }, "No Tajibs Yet"),
+                        React.createElement("p", { className: "text-white text-opacity-80" }, "Upload the first video to get started!")
+                    )
+                );
+            }
 
             return React.createElement(motion.div, {
                 initial: { opacity: 0, scale: 0.97 },
@@ -376,17 +336,17 @@
                     ref: feedRef,
                     onScroll: handleScroll,
                     onWheel: handleWheel,
-                    className: "h-full overflow-y-auto snap-y snap-mandatory"
+                    className: "h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide"
                 },
                     React.createElement(AnimatePresence, { mode: "wait" },
                         videos.map((video, index) =>
                             React.createElement(motion.div, {
-                                key: video.id,
+                                key: video.id || index,
                                 initial: { opacity: 0, y: 50 },
                                 animate: { 
-                                    opacity: index === currentIndex ? 1 : 0.7,
+                                    opacity: index === currentIndex ? 1 : 0.3,
                                     y: 0,
-                                    scale: index === currentIndex ? 1 : 0.97
+                                    scale: index === currentIndex ? 1 : 0.95
                                 },
                                 exit: { opacity: 0, y: -50 },
                                 transition: { duration: 0.3 },
@@ -403,7 +363,7 @@
             );
         }
 
-        // Upload Modal Component
+        // Upload Modal Component - REAL UPLOAD FUNCTIONALITY
         function UploadModal({ onClose, onUploadSuccess }) {
             const [file, setFile] = React.useState(null);
             const [caption, setCaption] = React.useState('');
@@ -413,42 +373,89 @@
 
             const handleFileSelect = (e) => {
                 const selectedFile = e.target.files[0];
-                if (selectedFile) {
+                if (selectedFile && selectedFile.type.startsWith('video/')) {
                     setFile(selectedFile);
                     setPreviewUrl(URL.createObjectURL(selectedFile));
+                } else {
+                    alert('Please select a video file');
                 }
             };
 
             const handleUpload = async () => {
-                if (!file) return;
+                if (!file) {
+                    alert('Please select a video file first');
+                    return;
+                }
 
                 setIsUploading(true);
                 setUploadProgress(0);
 
                 try {
-                    // For demo purposes, we'll simulate upload
-                    // In a real app, you would upload to Supabase
-                    const simulateUpload = setInterval(() => {
-                        setUploadProgress(prev => {
-                            if (prev >= 100) {
-                                clearInterval(simulateUpload);
-                                setIsUploading(false);
-                                
-                                // Simulate successful upload
-                                setTimeout(() => {
-                                    alert('Tajib uploaded successfully! (This is a demo - no actual upload occurred)');
-                                    onUploadSuccess();
-                                }, 500);
-                                
-                                return 100;
+                    // Generate unique file name
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+                    const filePath = `videos/${fileName}`;
+
+                    console.log('Starting upload...', filePath);
+
+                    // Upload to Supabase Storage
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('videos')
+                        .upload(filePath, file, {
+                            cacheControl: '3600',
+                            upsert: false,
+                            onUploadProgress: (progress) => {
+                                const percent = (progress.loaded / progress.total) * 100;
+                                setUploadProgress(percent);
+                                console.log(`Upload progress: ${percent}%`);
                             }
-                            return prev + 10;
                         });
-                    }, 200);
+
+                    if (uploadError) {
+                        console.error('Upload error:', uploadError);
+                        throw new Error(`Upload failed: ${uploadError.message}`);
+                    }
+
+                    console.log('Upload successful:', uploadData);
+
+                    // Get public URL
+                    const { data: urlData } = supabase.storage
+                        .from('videos')
+                        .getPublicUrl(filePath);
+
+                    console.log('Public URL:', urlData);
+
+                    // Insert record into database
+                    const { data: insertData, error: insertError } = await supabase
+                        .from('videos')
+                        .insert([
+                            {
+                                filename: file.name,
+                                path: filePath,
+                                url: urlData.publicUrl,
+                                caption: caption || 'Untitled Tajib',
+                                username: 'demoUser',
+                                created_at: new Date().toISOString()
+                            }
+                        ])
+                        .select();
+
+                    if (insertError) {
+                        console.error('Database insert error:', insertError);
+                        throw new Error(`Database error: ${insertError.message}`);
+                    }
+
+                    console.log('Database insert successful:', insertData);
+
+                    alert('Tajib uploaded successfully!');
+                    onUploadSuccess();
+                    
                 } catch (error) {
-                    console.error('Upload error:', error);
-                    alert('Upload failed. Please try again.');
+                    console.error('Upload process error:', error);
+                    alert(`Upload failed: ${error.message}`);
+                } finally {
                     setIsUploading(false);
+                    setUploadProgress(0);
                 }
             };
 
@@ -467,32 +474,29 @@
                     onClick: (e) => e.stopPropagation()
                 },
                     React.createElement("h2", { className: "text-2xl font-bold text-white mb-6" }, "Upload Tajib"),
-
-                    // File Upload Area
                     React.createElement("div", { className: "mb-6" },
-                        React.createElement("label", { className: "block text-white mb-2" }, "Choose Video"),
+                        React.createElement("label", { className: "block text-white mb-2" }, "Choose Video File"),
                         React.createElement("input", {
                             type: "file",
                             accept: "video/*",
                             onChange: handleFileSelect,
-                            className: "w-full text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-purple-600 hover:file:bg-purple-50"
-                        })
+                            disabled: isUploading,
+                            className: "w-full text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-purple-600 hover:file:bg-purple-50 disabled:opacity-50"
+                        }),
+                        React.createElement("p", { className: "text-white text-opacity-80 text-sm mt-2" }, "Select a video file to upload")
                     ),
-
-                    // Video Preview
                     previewUrl && React.createElement(motion.div, {
                         initial: { opacity: 0, height: 0 },
                         animate: { opacity: 1, height: 'auto' },
                         className: "mb-6"
                     },
+                        React.createElement("p", { className: "text-white mb-2" }, "Preview:"),
                         React.createElement("video", {
                             src: previewUrl,
                             controls: true,
                             className: "w-full rounded-lg max-h-60 object-cover"
                         })
                     ),
-
-                    // Caption Input
                     React.createElement("div", { className: "mb-6" },
                         React.createElement("label", { className: "block text-white mb-2" }, "Caption"),
                         React.createElement("input", {
@@ -500,29 +504,30 @@
                             value: caption,
                             onChange: (e) => setCaption(e.target.value),
                             placeholder: "Add a captivating caption...",
-                            className: "w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-60 border border-white border-opacity-30 focus:outline-none focus:border-opacity-60"
+                            disabled: isUploading,
+                            className: "w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-60 border border-white border-opacity-30 focus:outline-none focus:border-opacity-60 disabled:opacity-50"
                         })
                     ),
-
-                    // Progress Bar
                     isUploading && React.createElement(motion.div, {
                         initial: { opacity: 0 },
                         animate: { opacity: 1 },
                         className: "mb-6"
                     },
-                        React.createElement("div", { className: "w-full bg-white bg-opacity-20 rounded-full h-2" },
+                        React.createElement("div", { className: "w-full bg-white bg-opacity-20 rounded-full h-4 mb-2" },
                             React.createElement(motion.div, {
                                 initial: { width: 0 },
                                 animate: { width: `${uploadProgress}%` },
-                                className: "bg-white h-2 rounded-full transition-all duration-300"
-                            })
+                                className: "bg-green-500 h-4 rounded-full transition-all duration-300 flex items-center justify-center"
+                            },
+                                uploadProgress > 10 && React.createElement("span", { 
+                                    className: "text-white text-xs font-bold"
+                                }, `${Math.round(uploadProgress)}%`)
+                            )
                         ),
-                        React.createElement("p", { className: "text-white text-center mt-2" }, 
+                        React.createElement("p", { className: "text-white text-center text-sm" }, 
                             `Uploading... ${Math.round(uploadProgress)}%`
                         )
                     ),
-
-                    // Action Buttons
                     React.createElement("div", { className: "flex space-x-4" },
                         React.createElement(motion.button, {
                             whileHover: { scale: 1.05 },
@@ -553,34 +558,10 @@
                 onSearch(value);
             };
 
-            // Sample videos for demo
-            const sampleVideos = [
-                {
-                    id: 1,
-                    caption: "Amazing sunset view at the beach",
-                    username: "natureLover",
-                    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
-                },
-                {
-                    id: 2,
-                    caption: "Funny cat compilation",
-                    username: "petLover",
-                    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-                },
-                {
-                    id: 3,
-                    caption: "Cooking delicious pasta",
-                    username: "chefMaster",
-                    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4"
-                }
-            ];
-
-            // Filter videos based on search query
-            const filteredVideos = query.trim() ? 
-                sampleVideos.filter(video => 
-                    video.caption.toLowerCase().includes(query.toLowerCase()) ||
-                    video.username.toLowerCase().includes(query.toLowerCase())
-                ) : [];
+            const handleVideoSelect = (video) => {
+                // This would navigate to the video in a real app
+                alert(`Selected: ${video.caption}`);
+            };
 
             return React.createElement(motion.div, {
                 initial: { opacity: 0 },
@@ -596,7 +577,6 @@
                     className: "material-glass w-full max-w-2xl max-h-[80vh] overflow-hidden",
                     onClick: (e) => e.stopPropagation()
                 },
-                    // Search Header
                     React.createElement("div", { className: "flex items-center space-x-4 mb-6" },
                         React.createElement(motion.button, {
                             whileHover: { scale: 1.1 },
@@ -615,8 +595,6 @@
                             })
                         )
                     ),
-
-                    // Search Results
                     React.createElement("div", { className: "overflow-y-auto max-h-[60vh]" },
                         React.createElement(AnimatePresence, { mode: "wait" },
                             query.trim() ? 
@@ -627,27 +605,33 @@
                                     exit: { opacity: 0 },
                                     className: "space-y-4"
                                 },
-                                    filteredVideos.length > 0 ? 
-                                        filteredVideos.map((video, index) =>
+                                    searchResults.length > 0 ? 
+                                        searchResults.map((video, index) =>
                                             React.createElement(motion.div, {
                                                 key: video.id,
                                                 initial: { opacity: 0, y: 20 },
                                                 animate: { opacity: 1, y: 0 },
                                                 transition: { delay: index * 0.1 },
-                                                className: "flex items-center space-x-4 p-4 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 cursor-pointer transition-all duration-200"
+                                                className: "flex items-center space-x-4 p-4 rounded-lg bg-white bg-opacity-10 hover:bg-opacity-20 cursor-pointer transition-all duration-200",
+                                                onClick: () => handleVideoSelect(video)
                                             },
                                                 React.createElement("div", { 
                                                     className: "w-20 h-20 bg-black rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center"
                                                 },
-                                                    React.createElement("span", { className: "text-white" }, "🎬")
+                                                    React.createElement("video", {
+                                                        src: video.url,
+                                                        className: "w-full h-full object-cover"
+                                                    })
                                                 ),
                                                 React.createElement("div", { className: "flex-1 min-w-0" },
-                                                    React.createElement("h4", { className: "text-white font-semibold truncate" }, video.caption),
+                                                    React.createElement("h4", { className: "text-white font-semibold truncate" }, 
+                                                        video.caption || "Untitled Tajib"
+                                                    ),
                                                     React.createElement("p", { className: "text-white text-opacity-80 text-sm truncate" }, 
-                                                        `@${video.username}`
+                                                        `@${video.username || 'tajibCreator'}`
                                                     ),
                                                     React.createElement("p", { className: "text-white text-opacity-60 text-xs" }, 
-                                                        "Sample Video"
+                                                        {new Date(video.created_at).toLocaleDateString()}
                                                     )
                                                 )
                                             )
@@ -686,75 +670,109 @@
             const [videos, setVideos] = React.useState([]);
             const [showUploadModal, setShowUploadModal] = React.useState(false);
             const [showSearchPanel, setShowSearchPanel] = React.useState(false);
+            const [searchResults, setSearchResults] = React.useState([]);
+            const [loading, setLoading] = React.useState(true);
 
-            // Sample videos for demo
-            React.useEffect(() => {
-                const sampleVideos = [
-                    {
-                        id: 1,
-                        caption: "Amazing sunset view at the beach",
-                        username: "natureLover",
-                        url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-                        created_at: new Date()
-                    },
-                    {
-                        id: 2,
-                        caption: "Funny cat compilation - you won't stop laughing!",
-                        username: "petLover",
-                        url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-                        created_at: new Date(Date.now() - 86400000)
-                    },
-                    {
-                        id: 3,
-                        caption: "Cooking delicious pasta in 10 minutes",
-                        username: "chefMaster",
-                        url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-                        created_at: new Date(Date.now() - 172800000)
+            // Load videos from Supabase
+            const fetchVideos = async () => {
+                try {
+                    setLoading(true);
+                    console.log('Fetching videos from Supabase...');
+                    
+                    const { data, error } = await supabase
+                        .from('videos')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) {
+                        console.error('Error fetching videos:', error);
+                        throw error;
                     }
-                ];
-                setVideos(sampleVideos);
+                    
+                    console.log('Fetched videos:', data);
+                    setVideos(data || []);
+                    
+                } catch (error) {
+                    console.error('Failed to fetch videos:', error);
+                    alert('Error loading videos. Check console for details.');
+                    // Set some demo videos if fetch fails
+                    setVideos([
+                        {
+                            id: 1,
+                            caption: "Welcome to Tajib Tok!",
+                            username: "system",
+                            url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+                            created_at: new Date().toISOString()
+                        }
+                    ]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            React.useEffect(() => {
+                fetchVideos();
             }, []);
 
             const handleSearch = async (query) => {
-                // Search logic would go here in a real app
-                console.log("Searching for:", query);
+                if (!query.trim()) {
+                    setSearchResults([]);
+                    return;
+                }
+
+                try {
+                    const { data, error } = await supabase
+                        .from('videos')
+                        .select('*')
+                        .ilike('caption', `%${query}%`)
+                        .order('created_at', { ascending: false });
+
+                    if (!error) {
+                        setSearchResults(data || []);
+                    }
+                } catch (error) {
+                    console.error('Search error:', error);
+                    setSearchResults([]);
+                }
             };
 
+            if (loading) {
+                return React.createElement("div", { 
+                    className: "min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center" 
+                },
+                    React.createElement(motion.div, {
+                        animate: { rotate: 360 },
+                        transition: { duration: 1, repeat: Infinity, ease: "linear" },
+                        className: "w-16 h-16 border-4 border-white border-opacity-30 border-t-white rounded-full"
+                    })
+                );
+            }
+
             return React.createElement("div", { className: "min-h-screen bg-gradient-to-br from-purple-600 to-blue-600" },
-                // Main Layout
                 React.createElement("div", { className: "flex h-screen max-w-7xl mx-auto" },
-                    // Left Sidebar
                     React.createElement(SidebarLeft, {
                         onUploadClick: () => setShowUploadModal(true),
                         onSearchClick: () => setShowSearchPanel(true)
                     }),
-
-                    // Center Feed
                     React.createElement("div", { className: "flex-1 flex justify-center" },
                         React.createElement(TajibFeed, { videos: videos })
                     ),
-
-                    // Right Sidebar
                     React.createElement(SidebarRight, null)
                 ),
-
-                // Upload Modal
                 React.createElement(AnimatePresence, null,
                     showUploadModal && React.createElement(UploadModal, {
                         onClose: () => setShowUploadModal(false),
                         onUploadSuccess: () => {
                             setShowUploadModal(false);
-                            // In a real app, you would refresh the videos here
+                            fetchVideos(); // Refresh the feed
                         }
                     })
                 ),
-
-                // Search Panel
                 React.createElement(AnimatePresence, null,
                     showSearchPanel && React.createElement(SearchPanel, {
                         onClose: () => setShowSearchPanel(false),
                         onSearch: handleSearch,
-                        searchResults: [] // This would be populated in a real app
+                        searchResults: searchResults
                     })
                 )
             );
