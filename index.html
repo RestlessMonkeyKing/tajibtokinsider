@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TikTok Clone</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+    header { background: #ff0050; color: white; padding: 20px; text-align: center; font-size: 24px; }
+    main { padding: 20px; max-width: 800px; margin: auto; }
+    #feed video { width: 100%; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+    #uploadSection { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 40px; }
+    button { background: #ff0050; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #e60047; }
+    input[type="file"] { font-size: 16px; }
+    #status { margin-top: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<header>TikTok Clone</header>
+
+<main>
+  <div id="uploadSection">
+    <h2>Upload a Video</h2>
+    <input type="file" id="videoInput" accept="video/*"><br><br>
+    <button onclick="uploadVideo()">Upload</button>
+    <p id="status"></p>
+  </div>
+
+  <h2>Video Feed</h2>
+  <div id="feed"></div>
+</main>
+
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseUrl = "https://xqecfotbhbccrlamioft.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxZWNmb3RiaGJjY3JsYW1pb2Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMzAzNDksImV4cCI6MjA3OTgwNjM0OX0.aoSZSHK91Ota15IcExrfXZqN0FOQ8cXGWgujy9ECZOg";
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function uploadVideo() {
+    const file = document.getElementById("videoInput").files[0];
+    if (!file) return alert("Please choose a video first!");
+
+    document.getElementById("status").textContent = "Uploading...";
+
+    const fileName = `${Date.now()}-${file.name}`;
+    const { data: storageData, error: storageError } = await supabase.storage
+      .from("videos")
+      .upload(fileName, file);
+
+    if (storageError) {
+      document.getElementById("status").textContent = "Upload error: " + storageError.message;
+      return;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("videos")
+      .getPublicUrl(fileName);
+
+    const publicUrl = urlData.publicUrl;
+
+    const { error: dbError } = await supabase.from("videos").insert({
+      filename: file.name,
+      path: `videos/${fileName}`,
+      url: publicUrl,
+      created_at: new Date()
+    });
+
+    if (dbError) {
+      document.getElementById("status").textContent = "DB error: " + dbError.message;
+      return;
+    }
+
+    document.getElementById("status").textContent = "Upload complete!";
+    loadFeed();
+  }
+
+  async function loadFeed() {
+    const feedDiv = document.getElementById("feed");
+    feedDiv.innerHTML = "Loading...";
+
+    const { data, error } = await supabase
+      .from("videos")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    feedDiv.innerHTML = "";
+
+    if (data) {
+      data.forEach(post => {
+        const video = document.createElement("video");
+        video.src = post.url;
+        video.controls = true;
+        video.autoplay = false;
+        video.loop = false;
+        video.style.display = "block";
+        feedDiv.appendChild(video);
+      });
+    }
+  }
+
+  // Load feed on page load
+  loadFeed();
+</script>
+
+</body>
+</html>
