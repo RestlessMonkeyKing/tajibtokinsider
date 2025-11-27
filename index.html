@@ -1,146 +1,209 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>TikTok Clone</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-    header { background: #ff0050; color: white; padding: 20px; text-align: center; font-size: 24px; }
-    main { padding: 20px; max-width: 800px; margin: auto; }
+<meta charset="UTF-8">
+<title>TajibTok (RMK CONNEX.)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    #feed video { width: 100%; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-
-    #uploadSection {
-      background: white; padding: 20px; border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 40px;
+<style>
+    body {
+        margin:0;
+        font-family: Arial, sans-serif;
+        background:#09090f;
+        color:white;
+        display:flex;
+        height:100vh;
+        overflow:hidden;
     }
 
-    button {
-      background: #ff0050; color: white; border: none; padding: 10px 20px;
-      border-radius: 8px; cursor: pointer; font-size: 16px;
+    /* MATERIAL GLASS THEME */
+    .material-glass {
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(6px);
+        border: 2px solid rgba(255, 255, 255, 0.45);
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 6px 24px rgba(31, 38, 135, 0.65);
     }
-    button:hover { background: #e60047; }
 
-    #progressContainer {
-      width: 100%; height: 20px; background: #ddd;
-      border-radius: 10px; margin-top: 10px; overflow: hidden;
-      display: none;
+    /* LAYOUT */
+    #sidebar {
+        width: 260px;
+        padding:20px;
+        display:flex;
+        flex-direction:column;
+        gap:20px;
     }
+
+    #main {
+        flex:1;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+    }
+
+    #rightbar {
+        width: 160px;
+        padding:20px;
+        display:flex;
+        flex-direction:column;
+        gap:20px;
+        align-items:center;
+    }
+
+    /* UPLOAD BOX */
+    #uploadBox {
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+    }
+
+    #progressBox {
+        display:none;
+        width:100%;
+    }
+
     #progressBar {
-      height: 100%; width: 0%; background: #ff0050;
-      transition: width 0.1s linear;
+        width:0%;
+        height:12px;
+        background:#00ffb7;
+        border-radius:6px;
+        transition:0.2s;
     }
-    #progressText { margin-top: 5px; font-weight: bold; }
-  </style>
+
+    /* VIDEO PLAYER */
+    video {
+        width:340px;
+        height:600px;
+        border-radius:20px;
+        object-fit:cover;
+        background:black;
+    }
+
+    /* RIGHT ACTION BUTTONS */
+    .circleBtn {
+        width:60px;
+        height:60px;
+        border-radius:50%;
+        background:white;
+        color:black;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:20px;
+        cursor:pointer;
+        transition:0.2s;
+    }
+
+    .circleBtn:hover { transform: scale(1.1); }
+
+</style>
 </head>
 <body>
 
-<header>TikTok Clone</header>
+<!-- LEFT SIDEBAR -->
+<div id="sidebar" class="material-glass">
+    <h2>TajibTok</h2>
+    <div><b>Account:</b> Rohind</div>
 
-<main>
-  <div id="uploadSection">
-    <h2>Upload a Video</h2>
-    <input type="file" id="videoInput" accept="video/*"><br><br>
-    <button onclick="uploadVideo()">Upload</button>
+    <div id="uploadBox" class="material-glass">
+        <input type="file" id="videoInput" accept="video/*">
 
-    <div id="progressContainer">
-      <div id="progressBar"></div>
+        <button id="uploadBtn">Upload Tajib</button>
+
+        <div id="progressBox">
+            <div id="progressBar"></div>
+            <small id="progressText"></small>
+        </div>
     </div>
-    <div id="progressText"></div>
 
-    <p id="status"></p>
-  </div>
+    <input class="material-glass" id="searchBox" placeholder="Search tajibs...">
+</div>
 
-  <h2>Video Feed</h2>
-  <div id="feed"></div>
-</main>
+<!-- MIDDLE PLAYER -->
+<div id="main">
+    <video id="player" controls></video>
+</div>
 
-<!-- Supabase JS -->
+<!-- RIGHT SIDEBAR -->
+<div id="rightbar" class="material-glass">
+    <div class="circleBtn">❤️</div>
+    <div class="circleBtn">💬</div>
+    <div class="circleBtn">↗️</div>
+</div>
+
+<!-- SUPABASE SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-  const supabaseUrl = "https://xqecfotbhbccrlamioft.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhxZWNmb3RiaGJjY3JsYW1pb2Z0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMzAzNDksImV4cCI6MjA3OTgwNjM0OX0.aoSZSHK91Ota15IcExrfXZqN0FOQ8cXGWgujy9ECZOg";
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+/* ===============================
+   🔥 SUPABASE SETUP
+================================== */
+const SUPABASE_URL = "YOUR_URL_HERE";
+const SUPABASE_KEY = "YOUR_ANON_KEY_HERE";
 
-  async function uploadVideo() {
-    const file = document.getElementById("videoInput").files[0];
-    if (!file) return alert("Please choose a video first!");
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const progressContainer = document.getElementById("progressContainer");
-    const progressBar = document.getElementById("progressBar");
-    const progressText = document.getElementById("progressText");
+/* ===============================
+   🔥 ELEMENTS
+================================== */
+const videoInput = document.getElementById("videoInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const player = document.getElementById("player");
+const progressBox = document.getElementById("progressBox");
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
 
-    progressContainer.style.display = "block";
-    progressBar.style.width = "0%";
-    progressText.textContent = "0%";
+/* ===============================
+   🔥 UPLOAD FUNCTION
+================================== */
+uploadBtn.onclick = async () => {
+    const file = videoInput.files[0];
+    if (!file) {
+        alert("Choose a video first!");
+        return;
+    }
 
-    const fileName = `${Date.now()}-${file.name}`;
-    
-    // Manual upload using fetch so we get progress
-    const url = `${supabaseUrl}/storage/v1/object/videos/${fileName}`;
-    
-    const uploadReq = new XMLHttpRequest();
-    uploadReq.open("POST", url);
-    uploadReq.setRequestHeader("apikey", supabaseKey);
-    uploadReq.setRequestHeader("Authorization", `Bearer ${supabaseKey}`);
-    uploadReq.setRequestHeader("x-upsert", "false");
+    const fileName = `tajibs/${Date.now()}-${file.name}`;
 
-    uploadReq.upload.onprogress = function(e) {
-      if (e.lengthComputable) {
-        const percent = Math.round((e.loaded / e.total) * 100);
-        progressBar.style.width = percent + "%";
-        progressText.textContent = percent + "%";
-      }
-    };
+    progressBox.style.display = "block";
 
-    uploadReq.onload = async function() {
-      if (uploadReq.status >= 200 && uploadReq.status < 300) {
-        progressBar.style.background = "#00c851";  // green when done
-        progressText.textContent = "Upload complete! Finalizing...";
-
-        const publicUrl = `${supabaseUrl}/storage/v1/object/public/videos/${fileName}`;
-
-        await supabase.from("videos").insert({
-          filename: file.name,
-          path: fileName,
-          url: publicUrl,
-          created_at: new Date()
+    // Upload with progress
+    const { data, error } = await supa.storage
+        .from("tajibtok")   // bucket name MUST EXIST
+        .upload(fileName, file, {
+            upsert: true,
+            onUploadProgress: (evt) => {
+                const percent = Math.round((evt.loaded / evt.total) * 100);
+                progressBar.style.width = percent + "%";
+                progressText.innerText = percent + "%";
+            }
         });
 
-        document.getElementById("status").textContent = "Saved!";
-        loadFeed();
-      } else {
-        document.getElementById("status").textContent = "Upload error";
-      }
-    };
-
-    uploadReq.send(file);
-  }
-
-  async function loadFeed() {
-    const feedDiv = document.getElementById("feed");
-    feedDiv.innerHTML = "Loading...";
-
-    const { data, error } = await supabase
-      .from("videos")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    feedDiv.innerHTML = "";
-
-    if (data) {
-      data.forEach(post => {
-        const video = document.createElement("video");
-        video.src = post.url;
-        video.controls = true;
-        video.style.display = "block";
-        feedDiv.appendChild(video);
-      });
+    if (error) {
+        alert("Upload failed: " + error.message);
+        return;
     }
-  }
 
-  loadFeed();
+    // Get public URL
+    const { data: urlData } = supa
+        .storage
+        .from("tajibtok")
+        .getPublicUrl(fileName);
+
+    const videoURL = urlData.publicUrl;
+
+    // Save metadata in Supabase table "tajibs"
+    await supa.from("tajibs").insert({
+        url: videoURL,
+        userid: "rohind",
+        created_at: new Date()
+    });
+
+    player.src = videoURL;
+
+    progressText.innerText = "Done!";
+};
 </script>
-
 </body>
 </html>
