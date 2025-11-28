@@ -1,139 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Video Upload with ImageKit + Firebase</title>
-  <script type="module">
-
-    /* ------------------------------- FIREBASE ------------------------------- */
-
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import { 
-      getAuth, 
-      GoogleAuthProvider, 
-      signInWithPopup 
-    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-
-    import {
-      getFirestore,
-      doc,
-      setDoc
-    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyD1LWvjO4n_e-4X0z37X4VTWNVcwHW88bU",
-      authDomain: "ga-w-6184.firebaseapp.com",
-      projectId: "ga-w-6184",
-      storageBucket: "ga-w-6184.firebasestorage.app",
-      messagingSenderId: "356344033975",
-      appId: "1:356344033975:web:bfd6692cedfbb8133ed332"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-
-    /* ----------------------------- GOOGLE LOGIN ----------------------------- */
-
-    async function loginGoogle() {
-      const provider = new GoogleAuthProvider();
-      try {
-        const result = await signInWithPopup(auth, provider);
-        document.getElementById("status").innerText = 
-          "Signed in as: " + result.user.email;
-      } catch (err) {
-        alert("Login error: " + err.message);
-      }
-    }
-
-
-    /* ------------------------------ IMAGEKIT VIDEO UPLOAD ------------------------------ */
-    
-    const IMAGEKIT_PUBLIC_KEY = "public_xR5aWKlHrWkZKKxi1bhQqV/uZh0=";
-    const IMAGEKIT_ENDPOINT   = "https://ik.imagekit.io/restlessmonkeyking";
-    const UPLOAD_FOLDER       = "/tajibs";
-
-    async function uploadVideoToImageKit(file) {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("publicKey", IMAGEKIT_PUBLIC_KEY);
-      formData.append("fileName", file.name);
-      formData.append("folder", UPLOAD_FOLDER);
-      formData.append("useUniqueFileName", "true");
-      formData.append("overwriteFile", "false");
-
-      const uploadURL = "https://upload.imagekit.io/api/v1/files/upload";
-
-      const res = await fetch(uploadURL, {
-        method: "POST",
-        body: formData
-      });
-
-      return await res.json();
-    }
-
-
-    /* ------------------------------ UPLOAD + SAVE ------------------------------ */
-
-    async function handleUpload() {
-      const fileInput = document.getElementById("videoInput");
-      const file = fileInput.files[0];
-      if (!file) return alert("Choose a video first.");
-      if (!auth.currentUser) return alert("Login with Google first.");
-
-      // Video file types allowed
-      const allowedVideoTypes = ["video/mp4", "video/mov", "video/webm"];
-      if (!allowedVideoTypes.includes(file.type)) {
-        return alert("Please upload MP4, MOV, or WEBM only.");
-      }
-
-      document.getElementById("status").innerText = "Uploading video…";
-
-      // Upload to ImageKit
-      const ik = await uploadVideoToImageKit(file);
-
-      if (!ik.url) {
-        return alert("ImageKit upload failed.");
-      }
-
-      // Save URL to Firestore
-      await setDoc(
-        doc(db, "videos", auth.currentUser.uid + "_" + Date.now()),
-        {
-          user: auth.currentUser.email,
-          videoURL: ik.url,
-          uploaded: new Date()
-        }
-      );
-
-      document.getElementById("status").innerText = 
-        "Uploaded video successfully!\nVideo URL:\n" + ik.url;
-    }
-
-    window.loginGoogle = loginGoogle;
-    window.handleUpload = handleUpload;
-
-  </script>
+<meta charset="UTF-8">
+<title>TajibTok</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{margin:0;font-family:Arial;background:#0a0a0f;color:white;display:flex;height:100vh;}
+.material-glass{background: rgba(255, 255, 255, 0.25);backdrop-filter: blur(6px);border: 2px solid rgba(255,255,255,0.45);border-radius:8px;padding:20px;box-shadow:0 6px 24px rgba(31,38,135,0.65);}
+#sidebar{width:260px;display:flex;flex-direction:column;gap:20px;padding:20px;}
+#main{flex:1;display:flex;justify-content:center;align-items:center;}
+#rightbar{width:160px;display:flex;flex-direction:column;gap:20px;align-items:center;padding:20px;}
+#progressBox{display:none;width:100%;margin-top:10px;}
+#progressBar{width:0%;height:12px;background:#00ffb7;border-radius:6px;transition:0.2s;}
+video{width:340px;height:600px;border-radius:20px;object-fit:cover;background:black;}
+.circleBtn{width:60px;height:60px;border-radius:50%;background:white;color:black;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:0.2s;}
+.circleBtn:hover{transform:scale(1.1);}
+</style>
 </head>
+<body>
 
-<body style="font-family: Arial; padding: 20px;">
+<!-- LEFT SIDEBAR -->
+<div id="sidebar" class="material-glass">
+<h2>TajibTok</h2>
+<div><b>Account:</b> Rohind</div>
 
-  <h2>Video Upload → ImageKit → Firebase</h2>
+<input type="file" id="fileInput" accept="video/*">
+<button id="uploadBtn">Upload Tajib</button>
 
-  <button onclick="loginGoogle()" style="padding:10px; background:red; color:white;">
-    Sign in with Google
-  </button>
+<div id="progressBox" class="material-glass">
+  <div id="progressBar"></div>
+  <small id="progressText">0%</small>
+</div>
 
-  <br><br>
+<input id="searchBox" class="material-glass" placeholder="Search tajibs...">
+</div>
 
-  <input type="file" id="videoInput" accept="video/*">
-  <br><br>
+<!-- MIDDLE PLAYER -->
+<div id="main">
+  <video id="player" controls></video>
+</div>
 
-  <button onclick="handleUpload()" style="padding:10px;">
-    Upload Video
-  </button>
+<!-- RIGHT SIDEBAR -->
+<div id="rightbar" class="material-glass">
+  <div class="circleBtn">❤️</div>
+  <div class="circleBtn">💬</div>
+  <div class="circleBtn">↗️</div>
+</div>
 
-  <p id="status" style="white-space: pre-wrap;"></p>
+<!-- FIREBASE SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js"></script>
 
+<script>
+/* ================= FIREBASE CONFIG ================= */
+const firebaseConfig = {
+  apiKey: "YOUR_FB_KEY",
+  authDomain: "YOUR_FB_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APPID"
+};
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ================= IMAGEKIT CONFIG ================= */
+const IMAGEKIT_UPLOAD_URL = "https://upload.imagekit.io/api/v1/files/upload";
+const IMAGEKIT_PRIVATE_KEY = "private_BdWBQOhxDNprEqkzJ8sdZmSI3U0=";
+const IMAGEKIT_FOLDER = "/tajibs";
+
+/* ================= ELEMENTS ================= */
+const fileInput = document.getElementById("fileInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const progressBox = document.getElementById("progressBox");
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
+const player = document.getElementById("player");
+
+/* ================= UPLOAD FUNCTION ================= */
+async function uploadToImageKit(file, onProgress){
+  return new Promise((resolve,reject)=>{
+    const form = new FormData();
+    form.append("file",file);
+    form.append("fileName",Date.now()+"-"+file.name);
+    form.append("folder", IMAGEKIT_FOLDER);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", IMAGEKIT_UPLOAD_URL,true);
+    xhr.setRequestHeader("Authorization","Basic "+btoa(IMAGEKIT_PRIVATE_KEY+":"));
+
+    xhr.upload.onprogress = (e)=>{
+      if(e.lengthComputable){
+        const percent = Math.round((e.loaded/e.total)*100);
+        onProgress(percent);
+      }
+    }
+
+    xhr.onreadystatechange = ()=>{
+      if(xhr.readyState===4){
+        if(xhr.status===200){
+          resolve(JSON.parse(xhr.responseText));
+        }else{
+          reject("Upload failed: "+xhr.responseText);
+        }
+      }
+    }
+
+    xhr.send(form);
+  });
+}
+
+/* ================= BUTTON CLICK ================= */
+uploadBtn.onclick = async ()=>{
+  const file = fileInput.files[0];
+  if(!file) return alert("Pick a video!");
+
+  progressBox.style.display="block";
+  progressBar.style.width="0%";
+  progressText.innerText="0%";
+
+  try{
+    const result = await uploadToImageKit(file,(percent)=>{
+      progressBar.style.width=percent+"%";
+      progressText.innerText=percent+"%";
+    });
+
+    const videoURL = result.url;
+    player.src = videoURL;
+
+    // Save to Firebase
+    await db.collection("tajibs").add({
+      videoURL: videoURL,
+      createdAt: Date.now()
+    });
+
+    progressText.innerText="Upload complete!";
+  }catch(err){
+    alert("Error: "+err);
+  }
+};
+</script>
 </body>
 </html>
