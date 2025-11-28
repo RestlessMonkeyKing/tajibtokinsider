@@ -298,6 +298,130 @@
             object-fit: cover;
         }
 
+        /* Custom Video Controls */
+        .custom-video-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            padding: 20px;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .video-player-container:hover .custom-video-controls,
+        .video-player-container.touch-controls .custom-video-controls {
+            opacity: 1;
+        }
+
+        .video-controls-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .video-creator-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .creator-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .creator-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .creator-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .video-controls-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .volume-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+        }
+
         .video-info-overlay {
             position: absolute;
             bottom: 0;
@@ -601,7 +725,7 @@
             outline: none;
         }
 
-        .progress-bar {
+        .progress-bar-upload {
             width: 100%;
             height: 8px;
             background: rgba(255, 255, 255, 0.2);
@@ -610,7 +734,7 @@
             overflow: hidden;
         }
 
-        .progress {
+        .progress-upload {
             height: 100%;
             background: var(--primary);
             width: 0%;
@@ -959,8 +1083,8 @@
                 <label class="form-label" for="video-description">Description</label>
                 <textarea id="video-description" class="form-control" placeholder="Enter video description" rows="3" required></textarea>
             </div>
-            <div class="progress-bar">
-                <div class="progress" id="upload-progress"></div>
+            <div class="progress-bar-upload">
+                <div class="progress-upload" id="upload-progress"></div>
             </div>
             <div class="upload-status" id="upload-status"></div>
             <button class="upload-btn" id="upload-button" onclick="uploadVideo()" disabled style="width: 100%;">
@@ -1060,6 +1184,7 @@
         let selectedUsers = [];
         let isSwiping = false;
         let startY = 0;
+        let videoControlsTimeout;
 
         // DOM Elements
         const loginPage = document.getElementById('login-page');
@@ -1125,18 +1250,12 @@
             videoContainer.addEventListener('touchstart', function(e) {
                 isSwiping = true;
                 startY = e.touches[0].clientY;
+                e.preventDefault();
             });
             
             videoContainer.addEventListener('touchmove', function(e) {
                 if (!isSwiping) return;
-                
-                const currentY = e.touches[0].clientY;
-                const diff = startY - currentY;
-                
-                // Prevent default to avoid page scrolling
-                if (Math.abs(diff) > 10) {
-                    e.preventDefault();
-                }
+                e.preventDefault();
             });
             
             videoContainer.addEventListener('touchend', function(e) {
@@ -1159,16 +1278,18 @@
             // Mouse wheel navigation for desktop
             videoContainer.addEventListener('wheel', function(e) {
                 e.preventDefault();
-                if (e.deltaY > 0) {
-                    nextVideo();
-                } else {
-                    prevVideo();
+                if (Math.abs(e.deltaY) > 20) { // Only scroll if significant movement
+                    if (e.deltaY > 0) {
+                        nextVideo();
+                    } else {
+                        prevVideo();
+                    }
                 }
             });
             
             // Keyboard navigation
             document.addEventListener('keydown', function(e) {
-                if (feedPage.style.display === 'block') {
+                if (feedPage.style.display !== 'none') {
                     if (e.key === 'ArrowDown' || e.key === ' ') {
                         e.preventDefault();
                         nextVideo();
@@ -1337,7 +1458,9 @@
                     likes: 1245,
                     comments: 89,
                     shares: 34,
-                    likedBy: []
+                    likedBy: [],
+                    userName: "Nature Lover",
+                    userPhoto: null
                 },
                 {
                     id: 2,
@@ -1347,7 +1470,9 @@
                     likes: 892,
                     comments: 45,
                     shares: 21,
-                    likedBy: []
+                    likedBy: [],
+                    userName: "Ocean Explorer",
+                    userPhoto: null
                 },
                 {
                     id: 3,
@@ -1357,7 +1482,9 @@
                     likes: 1567,
                     comments: 112,
                     shares: 67,
-                    likedBy: []
+                    likedBy: [],
+                    userName: "Adventure Seeker",
+                    userPhoto: null
                 }
             ];
         }
@@ -1376,6 +1503,42 @@
                             <source src="${video.url}" type="video/mp4">
                             Your browser does not support the video tag.
                         </video>
+                        <div class="custom-video-controls">
+                            <div class="video-controls-top">
+                                <div class="video-creator-info">
+                                    <div class="creator-avatar">
+                                        ${video.userPhoto ? 
+                                            `<img src="${video.userPhoto}" alt="${video.userName}">` : 
+                                            `<i class="fas fa-user"></i>`
+                                        }
+                                    </div>
+                                    <div class="creator-name">${video.userName}</div>
+                                </div>
+                            </div>
+                            <div class="video-controls-bottom">
+                                <div class="progress-container" id="progress-container-${index}">
+                                    <div class="progress-bar" id="progress-bar-${index}"></div>
+                                </div>
+                                <div class="control-buttons">
+                                    <div class="control-left">
+                                        <button class="control-btn" id="play-pause-${index}">
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                        <div class="volume-container">
+                                            <button class="control-btn" id="mute-${index}">
+                                                <i class="fas fa-volume-up"></i>
+                                            </button>
+                                            <input type="range" class="volume-slider" id="volume-${index}" min="0" max="1" step="0.1" value="1">
+                                        </div>
+                                    </div>
+                                    <div class="control-right">
+                                        <button class="control-btn" id="fullscreen-${index}">
+                                            <i class="fas fa-expand"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="video-info-overlay">
                             <div class="video-caption">${video.caption}</div>
                             <div class="video-description">${video.description}</div>
@@ -1394,6 +1557,122 @@
                     updateActionCounts();
                     checkIfUserLikedVideo();
                 }
+                
+                // Initialize custom controls for this video
+                setTimeout(() => {
+                    initVideoControls(index);
+                }, 100);
+            });
+        }
+
+        // Initialize custom video controls
+        function initVideoControls(index) {
+            const videoItem = document.querySelectorAll('.video-item')[index];
+            const videoPlayer = videoItem.querySelector('video');
+            const playPauseBtn = videoItem.querySelector(`#play-pause-${index}`);
+            const muteBtn = videoItem.querySelector(`#mute-${index}`);
+            const volumeSlider = videoItem.querySelector(`#volume-${index}`);
+            const progressContainer = videoItem.querySelector(`#progress-container-${index}`);
+            const progressBar = videoItem.querySelector(`#progress-bar-${index}`);
+            const fullscreenBtn = videoItem.querySelector(`#fullscreen-${index}`);
+            const videoContainer = videoItem.querySelector('.video-player-container');
+            
+            // Play/Pause functionality
+            playPauseBtn.addEventListener('click', function() {
+                if (videoPlayer.paused) {
+                    videoPlayer.play();
+                    playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                } else {
+                    videoPlayer.pause();
+                    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                }
+            });
+            
+            // Video player events
+            videoPlayer.addEventListener('play', function() {
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            });
+            
+            videoPlayer.addEventListener('pause', function() {
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            });
+            
+            // Volume control
+            volumeSlider.addEventListener('input', function() {
+                videoPlayer.volume = volumeSlider.value;
+                if (videoPlayer.volume == 0) {
+                    muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                } else if (videoPlayer.volume < 0.5) {
+                    muteBtn.innerHTML = '<i class="fas fa-volume-down"></i>';
+                } else {
+                    muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                }
+            });
+            
+            // Mute toggle
+            muteBtn.addEventListener('click', function() {
+                videoPlayer.muted = !videoPlayer.muted;
+                if (videoPlayer.muted) {
+                    muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                    volumeSlider.value = 0;
+                } else {
+                    videoPlayer.volume = volumeSlider.value;
+                    if (videoPlayer.volume == 0) {
+                        muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                    } else if (videoPlayer.volume < 0.5) {
+                        muteBtn.innerHTML = '<i class="fas fa-volume-down"></i>';
+                    } else {
+                        muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    }
+                }
+            });
+            
+            // Progress bar
+            videoPlayer.addEventListener('timeupdate', function() {
+                const percent = (videoPlayer.currentTime / videoPlayer.duration) * 100;
+                progressBar.style.width = `${percent}%`;
+            });
+            
+            // Click on progress bar to seek
+            progressContainer.addEventListener('click', function(e) {
+                const rect = progressContainer.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                videoPlayer.currentTime = percent * videoPlayer.duration;
+            });
+            
+            // Fullscreen toggle
+            fullscreenBtn.addEventListener('click', function() {
+                if (!document.fullscreenElement) {
+                    videoContainer.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                    fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+                } else {
+                    document.exitFullscreen();
+                    fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+                }
+            });
+            
+            // Show controls on hover
+            videoContainer.addEventListener('mouseenter', function() {
+                clearTimeout(videoControlsTimeout);
+                videoContainer.classList.add('touch-controls');
+            });
+            
+            videoContainer.addEventListener('mouseleave', function() {
+                videoControlsTimeout = setTimeout(() => {
+                    videoContainer.classList.remove('touch-controls');
+                }, 3000);
+            });
+            
+            // Show controls on touch
+            videoContainer.addEventListener('touchstart', function() {
+                clearTimeout(videoControlsTimeout);
+                videoContainer.classList.add('touch-controls');
+                
+                videoControlsTimeout = setTimeout(() => {
+                    videoContainer.classList.remove('touch-controls');
+                }, 3000);
             });
         }
 
