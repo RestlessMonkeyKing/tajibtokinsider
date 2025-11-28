@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TajibTok</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -51,33 +55,39 @@
             text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
-        .login-form input {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.8);
-            font-size: 1rem;
+        .tagline {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
         }
 
-        .login-btn {
+        .google-btn {
             width: 100%;
             padding: 15px;
             margin-top: 10px;
             border: none;
             border-radius: 8px;
-            background: #ff2d55;
-            color: white;
+            background: white;
+            color: #757575;
             font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .login-btn:hover {
-            background: #ff1c40;
+        .google-btn:hover {
+            background: #f5f5f5;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .google-icon {
+            width: 20px;
+            height: 20px;
         }
 
         /* Main App Styles */
@@ -117,6 +127,13 @@
             justify-content: center;
             align-items: center;
             font-size: 1.5rem;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .upload-btn {
@@ -144,6 +161,21 @@
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.8);
             font-size: 1rem;
+        }
+
+        .logout-btn {
+            padding: 10px;
+            margin-top: auto;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         /* Video Feed Styles */
@@ -345,6 +377,10 @@
                 height: 50px;
                 font-size: 1.2rem;
             }
+            
+            .logout-btn {
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
@@ -353,11 +389,16 @@
     <div id="login-page">
         <div class="login-container material-glass">
             <div class="logo">TajibTok</div>
-            <form class="login-form">
-                <input type="text" id="username" placeholder="Username" required>
-                <input type="password" id="password" placeholder="Password" required>
-                <button type="button" class="login-btn" onclick="login()">Login</button>
-            </form>
+            <div class="tagline">Share your moments with the world</div>
+            <button class="google-btn" id="google-signin">
+                <svg class="google-icon" viewBox="0 0 24 24" width="24" height="24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+            </button>
         </div>
     </div>
 
@@ -367,7 +408,7 @@
             <!-- Left Sidebar -->
             <div class="sidebar material-glass">
                 <div class="user-info">
-                    <div class="avatar">
+                    <div class="avatar" id="user-avatar">
                         <i class="fas fa-user"></i>
                     </div>
                     <div>
@@ -379,6 +420,9 @@
                     <i class="fas fa-upload"></i> Upload Video
                 </button>
                 <input type="text" class="search-input" placeholder="Search videos...">
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </div>
 
             <!-- Center Video Feed -->
@@ -432,67 +476,25 @@
     <div class="popup" id="popup"></div>
 
     <script>
-        // Mock Firebase and ImageKit for demo purposes
-        // In a real implementation, you would use the actual Firebase and ImageKit SDKs
-        
-        // Mock Firebase Firestore
-        const mockFirestore = {
-            videos: [
-                {
-                    id: 1,
-                    url: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
-                    caption: "Beautiful nature scenery with yellow flowers",
-                    likes: 1245,
-                    comments: 89,
-                    shares: 34
-                },
-                {
-                    id: 2,
-                    url: "https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4",
-                    caption: "Calming waves in the ocean",
-                    likes: 892,
-                    comments: 45,
-                    shares: 21
-                },
-                {
-                    id: 3,
-                    url: "https://assets.mixkit.co/videos/preview/mixkit-going-down-a-curved-highway-down-a-mountain-41576-large.mp4",
-                    caption: "Driving through mountain roads",
-                    likes: 1567,
-                    comments: 112,
-                    shares: 67
-                }
-            ],
-            addVideo: function(video) {
-                video.id = this.videos.length + 1;
-                this.videos.unshift(video);
-                return Promise.resolve(video);
-            },
-            getVideos: function() {
-                return Promise.resolve(this.videos);
-            }
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_FB_KEY",
+            authDomain: "YOUR_FB_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_BUCKET",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APPID"
         };
 
-        // Mock ImageKit Upload
-        const mockImageKit = {
-            upload: function(file, onProgress) {
-                return new Promise((resolve, reject) => {
-                    let progress = 0;
-                    const interval = setInterval(() => {
-                        progress += 5;
-                        onProgress(progress);
-                        
-                        if (progress >= 100) {
-                            clearInterval(interval);
-                            resolve({
-                                url: URL.createObjectURL(file),
-                                fileId: 'mock_' + Date.now()
-                            });
-                        }
-                    }, 100);
-                });
-            }
-        };
+        // ImageKit Configuration
+        const IMAGEKIT_UPLOAD_URL = "https://upload.imagekit.io/api/v1/files/upload";
+        const IMAGEKIT_PRIVATE_KEY = "private_BdWBQOhxDNprEqkzJ8sdZmSI3U0=";
+        const IMAGEKIT_FOLDER = "/tajibs";
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
         // App State
         let currentUser = null;
@@ -503,6 +505,7 @@
         const loginPage = document.getElementById('login-page');
         const mainApp = document.getElementById('main-app');
         const loggedUser = document.getElementById('logged-user');
+        const userAvatar = document.getElementById('user-avatar');
         const videoContainer = document.getElementById('video-container');
         const uploadModal = document.getElementById('upload-modal');
         const popup = document.getElementById('popup');
@@ -514,15 +517,30 @@
         const uploadProgress = document.getElementById('upload-progress');
         const uploadStatus = document.getElementById('upload-status');
         const fileInfo = document.getElementById('file-info');
+        const googleSignInBtn = document.getElementById('google-signin');
 
         // Initialize the app
         function init() {
-            loadVideos();
             setupEventListeners();
+            
+            // Check if user is already signed in
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is signed in
+                    handleUserSignIn(user);
+                } else {
+                    // User is signed out
+                    loginPage.style.display = 'flex';
+                    mainApp.style.display = 'none';
+                }
+            });
         }
 
         // Setup event listeners
         function setupEventListeners() {
+            // Google Sign-In button
+            googleSignInBtn.addEventListener('click', signInWithGoogle);
+            
             // Video file selection
             videoFileInput.addEventListener('change', function() {
                 if (this.files.length > 0) {
@@ -558,6 +576,60 @@
             });
         }
 
+        // Google Sign-In function
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    // Signed in successfully
+                    handleUserSignIn(result.user);
+                })
+                .catch((error) => {
+                    console.error("Error during sign in:", error);
+                    showPopup('Sign in failed. Please try again.', 'error');
+                });
+        }
+
+        // Handle user sign in
+        function handleUserSignIn(user) {
+            currentUser = user;
+            
+            // Update UI with user info
+            loggedUser.textContent = user.displayName || user.email;
+            
+            // Update avatar
+            if (user.photoURL) {
+                userAvatar.innerHTML = `<img src="${user.photoURL}" alt="Profile">`;
+            } else {
+                userAvatar.innerHTML = `<i class="fas fa-user"></i>`;
+            }
+            
+            // Show main app
+            loginPage.style.display = 'none';
+            mainApp.style.display = 'block';
+            
+            // Load videos
+            loadVideos();
+            
+            showPopup(`Welcome to TajibTok, ${user.displayName || 'User'}!`, 'success');
+        }
+
+        // Logout function
+        function logout() {
+            auth.signOut()
+                .then(() => {
+                    showPopup('Signed out successfully', 'success');
+                    loginPage.style.display = 'flex';
+                    mainApp.style.display = 'none';
+                    currentUser = null;
+                })
+                .catch((error) => {
+                    console.error("Error during sign out:", error);
+                    showPopup('Sign out failed. Please try again.', 'error');
+                });
+        }
+
         // Handle swipe gestures
         function handleSwipe() {
             const diff = startY - endY;
@@ -571,30 +643,71 @@
             }
         }
 
-        // Login function
-        function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (!username || !password) {
-                showPopup('Please enter both username and password', 'error');
-                return;
-            }
-            
-            currentUser = username;
-            loggedUser.textContent = username;
-            loginPage.style.display = 'none';
-            mainApp.style.display = 'block';
-            
-            showPopup(`Welcome to TajibTok, ${username}!`, 'success');
-        }
-
         // Load videos from Firebase
         function loadVideos() {
-            mockFirestore.getVideos().then(fetchedVideos => {
-                videos = fetchedVideos;
-                renderVideos();
-            });
+            db.collection("tajibs").orderBy("createdAt", "desc")
+                .get()
+                .then((querySnapshot) => {
+                    videos = [];
+                    querySnapshot.forEach((doc) => {
+                        const videoData = doc.data();
+                        videos.push({
+                            id: doc.id,
+                            url: videoData.videoURL,
+                            caption: videoData.caption || "Shared on TajibTok",
+                            likes: videoData.likes || 0,
+                            comments: videoData.comments || 0,
+                            shares: videoData.shares || 0,
+                            userId: videoData.userId,
+                            userName: videoData.userName,
+                            userPhoto: videoData.userPhoto
+                        });
+                    });
+                    
+                    // If no videos in Firestore, use demo videos
+                    if (videos.length === 0) {
+                        videos = getDemoVideos();
+                    }
+                    
+                    renderVideos();
+                })
+                .catch((error) => {
+                    console.error("Error loading videos:", error);
+                    // Use demo videos if Firestore fails
+                    videos = getDemoVideos();
+                    renderVideos();
+                    showPopup('Using demo videos', 'info');
+                });
+        }
+
+        // Get demo videos (fallback)
+        function getDemoVideos() {
+            return [
+                {
+                    id: 1,
+                    url: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
+                    caption: "Beautiful nature scenery with yellow flowers",
+                    likes: 1245,
+                    comments: 89,
+                    shares: 34
+                },
+                {
+                    id: 2,
+                    url: "https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4",
+                    caption: "Calming waves in the ocean",
+                    likes: 892,
+                    comments: 45,
+                    shares: 21
+                },
+                {
+                    id: 3,
+                    url: "https://assets.mixkit.co/videos/preview/mixkit-going-down-a-curved-highway-down-a-mountain-41576-large.mp4",
+                    caption: "Driving through mountain roads",
+                    likes: 1567,
+                    comments: 112,
+                    shares: 67
+                }
+            ];
         }
 
         // Render videos in the feed
@@ -701,6 +814,10 @@
 
         // Open upload modal
         function openUploadModal() {
+            if (!currentUser) {
+                showPopup('Please sign in to upload videos', 'error');
+                return;
+            }
             uploadModal.style.display = 'flex';
             resetUploadForm();
         }
@@ -720,6 +837,43 @@
             uploadStatus.innerHTML = '';
         }
 
+        // Upload video to ImageKit
+        async function uploadToImageKit(file, onProgress) {
+            return new Promise((resolve, reject) => {
+                const form = new FormData();
+                form.append("file", file);
+                form.append("fileName", Date.now() + "-" + file.name);
+                form.append("folder", IMAGEKIT_FOLDER);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", IMAGEKIT_UPLOAD_URL, true);
+                xhr.setRequestHeader("Authorization", "Basic " + btoa(IMAGEKIT_PRIVATE_KEY + ":"));
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        onProgress(percent);
+                    }
+                };
+
+                xhr.onreadystatechange = () => {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            resolve(JSON.parse(xhr.responseText));
+                        } else {
+                            reject("Upload failed: " + xhr.responseText);
+                        }
+                    }
+                };
+                xhr.send(form);
+            });
+        }
+
+        // Save video URL to Firestore
+        async function saveVideoToFirestore(videoData) {
+            return db.collection("tajibs").add(videoData);
+        }
+
         // Upload video function
         function uploadVideo() {
             const file = videoFileInput.files[0];
@@ -732,33 +886,37 @@
             uploadButton.disabled = true;
             uploadStatus.innerHTML = 'Uploading...';
             
-            // Mock upload with progress
-            mockImageKit.upload(file, (progress) => {
+            // Upload to ImageKit
+            uploadToImageKit(file, (progress) => {
                 uploadProgress.style.width = `${progress}%`;
             }).then(result => {
                 // Save to Firebase
                 const newVideo = {
-                    url: result.url,
+                    videoURL: result.url,
                     caption: `My video ${new Date().toLocaleDateString()}`,
                     likes: 0,
                     comments: 0,
-                    shares: 0
+                    shares: 0,
+                    userId: currentUser.uid,
+                    userName: currentUser.displayName,
+                    userPhoto: currentUser.photoURL,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
-                return mockFirestore.addVideo(newVideo);
-            }).then(savedVideo => {
+                return saveVideoToFirestore(newVideo);
+            }).then(() => {
                 uploadStatus.innerHTML = 'Upload complete!';
                 showPopup('Video uploaded successfully!', 'success');
                 
-                // Add to local videos array and re-render
-                videos.unshift(savedVideo);
-                renderVideos();
+                // Reload videos from Firestore
+                loadVideos();
                 
                 // Reset and close modal after delay
                 setTimeout(() => {
                     closeUploadModal();
                 }, 1500);
             }).catch(error => {
+                console.error("Upload error:", error);
                 uploadStatus.innerHTML = 'Error: Upload failed';
                 showPopup('Upload failed. Please try again.', 'error');
                 uploadButton.disabled = false;
@@ -768,7 +926,16 @@
         // Action functions
         function likeVideo() {
             if (videos.length > 0) {
-                videos[currentVideoIndex].likes++;
+                const currentVideo = videos[currentVideoIndex];
+                currentVideo.likes++;
+                
+                // Update in Firestore if it's a real video (not demo)
+                if (currentVideo.id && typeof currentVideo.id === 'string') {
+                    db.collection("tajibs").doc(currentVideo.id).update({
+                        likes: firebase.firestore.FieldValue.increment(1)
+                    });
+                }
+                
                 updateActionCounts();
                 showPopup('Liked! ❤️', 'success');
             }
@@ -780,7 +947,16 @@
 
         function shareVideo() {
             if (videos.length > 0) {
-                videos[currentVideoIndex].shares++;
+                const currentVideo = videos[currentVideoIndex];
+                currentVideo.shares++;
+                
+                // Update in Firestore if it's a real video (not demo)
+                if (currentVideo.id && typeof currentVideo.id === 'string') {
+                    db.collection("tajibs").doc(currentVideo.id).update({
+                        shares: firebase.firestore.FieldValue.increment(1)
+                    });
+                }
+                
                 updateActionCounts();
                 
                 if (navigator.share) {
