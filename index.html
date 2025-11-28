@@ -275,7 +275,7 @@
             justify-content: flex-end;
             padding: 24px;
             border-radius: 20px;
-            transition: transform 0.5s ease, opacity 0.5s ease;
+            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s ease;
             opacity: 0;
         }
 
@@ -283,30 +283,44 @@
             opacity: 1;
         }
 
+        .video-player-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+        }
+
         .video-player {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 20px;
         }
 
-        .video-info {
-            margin-top: 20px;
+        .video-info-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            border-radius: 0 0 16px 16px;
             animation: slideUp 0.5s ease 0.3s both;
         }
 
         .video-caption {
-            font-size: 1.3rem;
-            margin-bottom: 12px;
-            font-weight: 600;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
         }
 
         .video-description {
             font-size: 1rem;
             opacity: 0.9;
-            margin-bottom: 16px;
             line-height: 1.5;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
         }
 
         .video-stats {
@@ -314,6 +328,7 @@
             gap: 20px;
             font-size: 0.9rem;
             opacity: 0.8;
+            margin-top: 12px;
         }
 
         /* Action Buttons */
@@ -360,6 +375,33 @@
         .action-count {
             font-size: 0.9rem;
             font-weight: 600;
+        }
+
+        /* Navigation Arrows */
+        .nav-arrows {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .nav-arrow {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.4rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-arrow:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
         }
 
         /* Create Page */
@@ -884,6 +926,15 @@
                         <div class="action-count" id="share-count">0</div>
                     </div>
                 </div>
+                
+                <div class="nav-arrows">
+                    <div class="nav-arrow" onclick="prevVideo()">
+                        <i class="fas fa-chevron-up"></i>
+                    </div>
+                    <div class="nav-arrow" onclick="nextVideo()">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -900,6 +951,10 @@
                 <i class="fas fa-folder-open"></i> Choose Video
             </button>
             <div id="file-info" style="margin: 10px 0;"></div>
+            <div class="form-group">
+                <label class="form-label" for="video-title">Title</label>
+                <input type="text" id="video-title" class="form-control" placeholder="Enter video title" required>
+            </div>
             <div class="form-group">
                 <label class="form-label" for="video-description">Description</label>
                 <textarea id="video-description" class="form-control" placeholder="Enter video description" rows="3" required></textarea>
@@ -1003,6 +1058,8 @@
         let currentVideoId = null;
         let editingVideoId = null;
         let selectedUsers = [];
+        let isSwiping = false;
+        let startY = 0;
 
         // DOM Elements
         const loginPage = document.getElementById('login-page');
@@ -1024,6 +1081,7 @@
         const uploadProgress = document.getElementById('upload-progress');
         const uploadStatus = document.getElementById('upload-status');
         const fileInfo = document.getElementById('file-info');
+        const videoTitle = document.getElementById('video-title');
         const videoDescription = document.getElementById('video-description');
         const googleSignInBtn = document.getElementById('google-signin');
         const feedPage = document.getElementById('feed-page');
@@ -1063,25 +1121,61 @@
                 }
             });
 
-            // Video swipe navigation
-            let startY = 0;
-            let endY = 0;
-            
+            // Improved swipe detection with better handling
             videoContainer.addEventListener('touchstart', function(e) {
+                isSwiping = true;
                 startY = e.touches[0].clientY;
             });
             
+            videoContainer.addEventListener('touchmove', function(e) {
+                if (!isSwiping) return;
+                
+                const currentY = e.touches[0].clientY;
+                const diff = startY - currentY;
+                
+                // Prevent default to avoid page scrolling
+                if (Math.abs(diff) > 10) {
+                    e.preventDefault();
+                }
+            });
+            
             videoContainer.addEventListener('touchend', function(e) {
-                endY = e.changedTouches[0].clientY;
-                handleSwipe();
+                if (!isSwiping) return;
+                
+                const endY = e.changedTouches[0].clientY;
+                const diff = startY - endY;
+                
+                if (Math.abs(diff) > 50) { // Minimum swipe distance
+                    if (diff > 0) {
+                        nextVideo();
+                    } else {
+                        prevVideo();
+                    }
+                }
+                
+                isSwiping = false;
             });
             
             // Mouse wheel navigation for desktop
             videoContainer.addEventListener('wheel', function(e) {
+                e.preventDefault();
                 if (e.deltaY > 0) {
                     nextVideo();
                 } else {
                     prevVideo();
+                }
+            });
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (feedPage.style.display === 'block') {
+                    if (e.key === 'ArrowDown' || e.key === ' ') {
+                        e.preventDefault();
+                        nextVideo();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        prevVideo();
+                    }
                 }
             });
         }
@@ -1146,19 +1240,6 @@
                     console.error("Error during sign out:", error);
                     showPopup('Sign out failed. Please try again.', 'error');
                 });
-        }
-
-        // Handle swipe gestures
-        function handleSwipe() {
-            const diff = startY - endY;
-            
-            if (Math.abs(diff) > 50) {
-                if (diff > 0) {
-                    nextVideo();
-                } else {
-                    prevVideo();
-                }
-            }
         }
 
         // Load videos from Firebase
@@ -1290,16 +1371,18 @@
                 videoItem.className = `video-item ${index === 0 ? 'active' : ''}`;
                 
                 videoItem.innerHTML = `
-                    <video class="video-player" loop ${index === 0 ? 'autoplay muted' : ''}>
-                        <source src="${video.url}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                    <div class="video-info">
-                        <div class="video-caption">${video.caption}</div>
-                        <div class="video-description">${video.description}</div>
-                        <div class="video-stats">
-                            <span>💬 ${video.comments}</span>
-                            <span>↗️ ${video.shares}</span>
+                    <div class="video-player-container">
+                        <video class="video-player" loop ${index === 0 ? 'autoplay' : ''}>
+                            <source src="${video.url}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-info-overlay">
+                            <div class="video-caption">${video.caption}</div>
+                            <div class="video-description">${video.description}</div>
+                            <div class="video-stats">
+                                <span>💬 ${video.comments}</span>
+                                <span>↗️ ${video.shares}</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1411,6 +1494,7 @@
             uploadButton.disabled = true;
             uploadProgress.style.width = '0%';
             uploadStatus.innerHTML = '';
+            videoTitle.value = '';
             videoDescription.value = '';
         }
 
@@ -1454,10 +1538,16 @@
         // Upload video function
         function uploadVideo() {
             const file = videoFileInput.files[0];
+            const title = videoTitle.value.trim();
             const description = videoDescription.value.trim();
             
             if (!file) {
                 showPopup('Pick a video!', 'error');
+                return;
+            }
+            
+            if (!title) {
+                showPopup('Please add a title!', 'error');
                 return;
             }
             
@@ -1474,7 +1564,7 @@
             }).then(result => {
                 const newVideo = {
                     videoURL: result.url,
-                    caption: `My video ${new Date().toLocaleDateString()}`,
+                    caption: title,
                     description: description,
                     likes: 0,
                     comments: 0,
@@ -1736,7 +1826,6 @@
             selectedUsers = [];
             
             // In a real app, you would fetch actual users from Firestore
-            // For now, we'll use mock data with realistic user information
             const mockUsers = [
                 { id: 'user1', name: 'Alex Johnson', email: 'alex.johnson@example.com', photo: null },
                 { id: 'user2', name: 'Maria Garcia', email: 'maria.garcia@example.com', photo: null },
@@ -1778,7 +1867,6 @@
                 return;
             }
             
-            // In a real app, you would save the sharing information to Firestore
             showPopup(`Video shared with ${selectedUsers.length} user(s)!`, 'success');
             
             // Update share count
