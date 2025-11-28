@@ -1,652 +1,139 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TajibTok - Video Sharing Platform</title>
+  <title>Video Upload with ImageKit + Firebase</title>
+  <script type="module">
+
+    /* ------------------------------- FIREBASE ------------------------------- */
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import { 
+      getAuth, 
+      GoogleAuthProvider, 
+      signInWithPopup 
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+    import {
+      getFirestore,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1LWvjO4n_e-4X0z37X4VTWNVcwHW88bU",
+      authDomain: "ga-w-6184.firebaseapp.com",
+      projectId: "ga-w-6184",
+      storageBucket: "ga-w-6184.firebasestorage.app",
+      messagingSenderId: "356344033975",
+      appId: "1:356344033975:web:bfd6692cedfbb8133ed332"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+
+    /* ----------------------------- GOOGLE LOGIN ----------------------------- */
+
+    async function loginGoogle() {
+      const provider = new GoogleAuthProvider();
+      try {
+        const result = await signInWithPopup(auth, provider);
+        document.getElementById("status").innerText = 
+          "Signed in as: " + result.user.email;
+      } catch (err) {
+        alert("Login error: " + err.message);
+      }
+    }
+
+
+    /* ------------------------------ IMAGEKIT VIDEO UPLOAD ------------------------------ */
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Framer Motion -->
-    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
-    
-    <!-- React & ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Google OAuth -->
-    <script src="https://accounts.google.com/gsi/client" async></script>
-    
-    <style>
-        .material-glass {
-            background: rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(6px);
-            border: 2px solid rgba(255, 255, 255, 0.45);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 6px 24px rgba(31, 38, 135, 0.65);
+    const IMAGEKIT_PUBLIC_KEY = "public_xR5aWKlHrWkZKKxi1bhQqV/uZh0=";
+    const IMAGEKIT_ENDPOINT   = "https://ik.imagekit.io/restlessmonkeyking";
+    const UPLOAD_FOLDER       = "/tajibs";
+
+    async function uploadVideoToImageKit(file) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("publicKey", IMAGEKIT_PUBLIC_KEY);
+      formData.append("fileName", file.name);
+      formData.append("folder", UPLOAD_FOLDER);
+      formData.append("useUniqueFileName", "true");
+      formData.append("overwriteFile", "false");
+
+      const uploadURL = "https://upload.imagekit.io/api/v1/files/upload";
+
+      const res = await fetch(uploadURL, {
+        method: "POST",
+        body: formData
+      });
+
+      return await res.json();
+    }
+
+
+    /* ------------------------------ UPLOAD + SAVE ------------------------------ */
+
+    async function handleUpload() {
+      const fileInput = document.getElementById("videoInput");
+      const file = fileInput.files[0];
+      if (!file) return alert("Choose a video first.");
+      if (!auth.currentUser) return alert("Login with Google first.");
+
+      // Video file types allowed
+      const allowedVideoTypes = ["video/mp4", "video/mov", "video/webm"];
+      if (!allowedVideoTypes.includes(file.type)) {
+        return alert("Please upload MP4, MOV, or WEBM only.");
+      }
+
+      document.getElementById("status").innerText = "Uploading video…";
+
+      // Upload to ImageKit
+      const ik = await uploadVideoToImageKit(file);
+
+      if (!ik.url) {
+        return alert("ImageKit upload failed.");
+      }
+
+      // Save URL to Firestore
+      await setDoc(
+        doc(db, "videos", auth.currentUser.uid + "_" + Date.now()),
+        {
+          user: auth.currentUser.email,
+          videoURL: ik.url,
+          uploaded: new Date()
         }
-        
-        .video-container {
-            aspect-ratio: 9/16;
-        }
-        
-        .snap-y {
-            scroll-snap-type: y mandatory;
-        }
-        
-        .snap-start {
-            scroll-snap-align: start;
-        }
-        
-        .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-    </style>
+      );
+
+      document.getElementById("status").innerText = 
+        "Uploaded video successfully!\nVideo URL:\n" + ik.url;
+    }
+
+    window.loginGoogle = loginGoogle;
+    window.handleUpload = handleUpload;
+
+  </script>
 </head>
-<body class="min-h-screen gradient-bg">
-    <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        const { motion, AnimatePresence } = window.framerMotion;
+<body style="font-family: Arial; padding: 20px;">
 
-        // Supabase Configuration - REPLACE WITH YOUR PROJECT DETAILS
-        const supabaseUrl = "https://your-project.supabase.co";
-        const supabaseKey = "your-anon-key";
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+  <h2>Video Upload → ImageKit → Firebase</h2>
 
-        // Authentication Component
-        function Auth() {
-            const handleGoogleLogin = async () => {
-                try {
-                    const { data, error } = await supabase.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: {
-                            queryParams: {
-                                access_type: 'offline',
-                                prompt: 'consent'
-                            }
-                        }
-                    });
-                    
-                    if (error) throw error;
-                } catch (error) {
-                    console.error('Auth error:', error);
-                    alert('Login failed: ' + error.message);
-                }
-            };
+  <button onclick="loginGoogle()" style="padding:10px; background:red; color:white;">
+    Sign in with Google
+  </button>
 
-            return React.createElement('div', { className: "min-h-screen flex items-center justify-center p-8" },
-                React.createElement('div', { className: "material-glass max-w-md w-full text-center" },
-                    React.createElement('h1', { className: "text-4xl font-bold text-white mb-4" }, "TajibTok"),
-                    React.createElement('p', { className: "text-white text-opacity-80 mb-8" }, "Share your moments with the world"),
-                    React.createElement(motion.button, {
-                        onClick: handleGoogleLogin,
-                        whileHover: { scale: 1.05 },
-                        whileTap: { scale: 0.95 },
-                        className: "w-full bg-white text-purple-600 py-3 px-6 rounded-lg font-semibold flex items-center justify-center space-x-3"
-                    },
-                        React.createElement('span', null, "Continue with Google")
-                    )
-                )
-            );
-        }
+  <br><br>
 
-        // Video Upload Component
-        function UploadModal({ isOpen, onClose, onUploadSuccess }) {
-            const [file, setFile] = useState(null);
-            const [caption, setCaption] = useState('');
-            const [uploadProgress, setUploadProgress] = useState(0);
-            const [isUploading, setIsUploading] = useState(false);
-            const [previewUrl, setPreviewUrl] = useState('');
+  <input type="file" id="videoInput" accept="video/*">
+  <br><br>
 
-            const handleFileSelect = (e) => {
-                const selectedFile = e.target.files[0];
-                if (selectedFile && selectedFile.type.startsWith('video/')) {
-                    setFile(selectedFile);
-                    setPreviewUrl(URL.createObjectURL(selectedFile));
-                }
-            };
+  <button onclick="handleUpload()" style="padding:10px;">
+    Upload Video
+  </button>
 
-            const handleUpload = async () => {
-                if (!file) return;
+  <p id="status" style="white-space: pre-wrap;"></p>
 
-                setIsUploading(true);
-                setUploadProgress(0);
-
-                try {
-                    const user = (await supabase.auth.getUser()).data.user;
-                    if (!user) throw new Error('Not authenticated');
-
-                    // Generate unique filename
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-                    // Upload to Supabase Storage
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('videos')
-                        .upload(fileName, file, {
-                            cacheControl: '3600',
-                            upsert: false
-                        });
-
-                    if (uploadError) throw uploadError;
-
-                    // Get public URL
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('videos')
-                        .getPublicUrl(fileName);
-
-                    // Create video record
-                    const { error: dbError } = await supabase
-                        .from('videos')
-                        .insert({
-                            user_id: user.id,
-                            video_url: publicUrl,
-                            caption: caption,
-                            storage_path: fileName
-                        });
-
-                    if (dbError) throw dbError;
-
-                    onUploadSuccess();
-                    onClose();
-                    resetForm();
-                    
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    alert('Upload failed: ' + error.message);
-                } finally {
-                    setIsUploading(false);
-                }
-            };
-
-            const resetForm = () => {
-                setFile(null);
-                setCaption('');
-                setUploadProgress(0);
-                setPreviewUrl('');
-            };
-
-            if (!isOpen) return null;
-
-            return React.createElement(motion.div, {
-                initial: { opacity: 0 },
-                animate: { opacity: 1 },
-                exit: { opacity: 0 },
-                className: "fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            },
-                React.createElement(motion.div, {
-                    initial: { scale: 0.9, opacity: 0, y: 20 },
-                    animate: { scale: 1, opacity: 1, y: 0 },
-                    className: "material-glass w-full max-w-md max-h-[90vh] overflow-y-auto"
-                },
-                    React.createElement('h2', { className: "text-2xl font-bold text-white mb-4" }, "Upload Video"),
-                    
-                    React.createElement('div', { className: "mb-4" },
-                        React.createElement('input', {
-                            type: "file",
-                            accept: "video/*",
-                            onChange: handleFileSelect,
-                            disabled: isUploading,
-                            className: "w-full text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-purple-600"
-                        })
-                    ),
-
-                    previewUrl && React.createElement('div', { className: "mb-4" },
-                        React.createElement('video', {
-                            src: previewUrl,
-                            controls: true,
-                            className: "w-full rounded-lg max-h-60 object-cover"
-                        })
-                    ),
-
-                    React.createElement('div', { className: "mb-4" },
-                        React.createElement('textarea',
-                            {
-                                value: caption,
-                                onChange: (e) => setCaption(e.target.value),
-                                placeholder: "Add a caption...",
-                                disabled: isUploading,
-                                className: "w-full px-3 py-2 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-60 border border-white border-opacity-30 focus:outline-none focus:border-opacity-60",
-                                rows: 3
-                            }
-                        )
-                    ),
-
-                    isUploading && React.createElement('div', { className: "mb-4" },
-                        React.createElement('div', { className: "w-full bg-white bg-opacity-20 rounded-full h-2" },
-                            React.createElement('div', {
-                                className: "bg-green-500 h-2 rounded-full transition-all duration-300",
-                                style: { width: `${uploadProgress}%` }
-                            })
-                        ),
-                        React.createElement('p', { className: "text-white text-center text-sm mt-2" }, `Uploading... ${Math.round(uploadProgress)}%`)
-                    ),
-
-                    React.createElement('div', { className: "flex space-x-3" },
-                        React.createElement(motion.button, {
-                            onClick: onClose,
-                            disabled: isUploading,
-                            whileHover: { scale: 1.05 },
-                            whileTap: { scale: 0.95 },
-                            className: "flex-1 py-2 px-4 bg-white bg-opacity-20 text-white rounded-lg font-medium disabled:opacity-50"
-                        }, "Cancel"),
-                        React.createElement(motion.button, {
-                            onClick: handleUpload,
-                            disabled: !file || isUploading,
-                            whileHover: { scale: 1.05 },
-                            whileTap: { scale: 0.95 },
-                            className: "flex-1 py-2 px-4 bg-white text-purple-600 rounded-lg font-medium disabled:opacity-50"
-                        }, isUploading ? "Uploading..." : "Upload")
-                    )
-                )
-            );
-        }
-
-        // Video Player Component
-        function VideoPlayer({ video, isActive, onLike, onComment, currentUser }) {
-            const videoRef = useRef();
-            const [isPlaying, setIsPlaying] = useState(false);
-            const [isLiked, setIsLiked] = useState(false);
-            const [likeCount, setLikeCount] = useState(video.like_count || 0);
-            const [showComments, setShowComments] = useState(false);
-            const [comments, setComments] = useState([]);
-            const [newComment, setNewComment] = useState('');
-
-            useEffect(() => {
-                const videoElement = videoRef.current;
-                if (!videoElement) return;
-
-                const handlePlay = () => setIsPlaying(true);
-                const handlePause = () => setIsPlaying(false);
-
-                videoElement.addEventListener('play', handlePlay);
-                videoElement.addEventListener('pause', handlePause);
-
-                if (isActive) {
-                    videoElement.play().catch(console.error);
-                } else {
-                    videoElement.pause();
-                }
-
-                return () => {
-                    videoElement.removeEventListener('play', handlePlay);
-                    videoElement.removeEventListener('pause', handlePause);
-                };
-            }, [isActive, video.video_url]);
-
-            useEffect(() => {
-                checkIfLiked();
-                loadComments();
-            }, [video.id, currentUser]);
-
-            const checkIfLiked = async () => {
-                if (!currentUser) return;
-                
-                const { data, error } = await supabase
-                    .from('likes')
-                    .select('id')
-                    .eq('video_id', video.id)
-                    .eq('user_id', currentUser.id)
-                    .single();
-
-                setIsLiked(!!data);
-            };
-
-            const loadComments = async () => {
-                const { data, error } = await supabase
-                    .from('comments')
-                    .select(`
-                        *,
-                        profiles (username, avatar_url)
-                    `)
-                    .eq('video_id', video.id)
-                    .order('created_at', { ascending: true });
-
-                if (data) setComments(data);
-            };
-
-            const handleLike = async () => {
-                if (!currentUser) return;
-
-                try {
-                    if (isLiked) {
-                        // Unlike
-                        await supabase
-                            .from('likes')
-                            .delete()
-                            .eq('video_id', video.id)
-                            .eq('user_id', currentUser.id);
-                        
-                        setLikeCount(prev => prev - 1);
-                    } else {
-                        // Like
-                        await supabase
-                            .from('likes')
-                            .insert({
-                                video_id: video.id,
-                                user_id: currentUser.id
-                            });
-                        
-                        setLikeCount(prev => prev + 1);
-                    }
-                    setIsLiked(!isLiked);
-                } catch (error) {
-                    console.error('Like error:', error);
-                }
-            };
-
-            const handleAddComment = async () => {
-                if (!currentUser || !newComment.trim()) return;
-
-                try {
-                    const { error } = await supabase
-                        .from('comments')
-                        .insert({
-                            video_id: video.id,
-                            user_id: currentUser.id,
-                            content: newComment.trim()
-                        });
-
-                    if (!error) {
-                        setNewComment('');
-                        loadComments();
-                    }
-                } catch (error) {
-                    console.error('Comment error:', error);
-                }
-            };
-
-            return React.createElement(motion.div, {
-                className: "relative rounded-2xl overflow-hidden bg-black w-full max-w-sm video-container shadow-2xl"
-            },
-                React.createElement('video', {
-                    ref: videoRef,
-                    src: video.video_url,
-                    loop: true,
-                    muted: true,
-                    playsInline: true,
-                    className: "w-full h-full object-cover",
-                    onClick: () => videoRef.current?.paused ? videoRef.current.play() : videoRef.current?.pause()
-                }),
-
-                React.createElement('div', { className: "absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent" },
-                    React.createElement('h3', { className: "text-white font-semibold text-lg mb-1" }, video.caption),
-                    React.createElement('p', { className: "text-white text-opacity-80 text-sm" }, `@${video.profiles?.username || 'user'}`)
-                ),
-
-                React.createElement('div', { className: "absolute right-4 bottom-20 flex flex-col items-center space-y-4" },
-                    React.createElement(motion.button, {
-                        onClick: handleLike,
-                        whileHover: { scale: 1.1 },
-                        whileTap: { scale: 0.9 },
-                        className: "flex flex-col items-center"
-                    },
-                        React.createElement('div', { className: "w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center" },
-                            React.createElement('span', { className: "text-2xl" }, isLiked ? "❤️" : "🤍")
-                        ),
-                        React.createElement('span', { className: "text-white text-sm font-medium mt-1" }, likeCount)
-                    ),
-
-                    React.createElement(motion.button, {
-                        onClick: () => setShowComments(true),
-                        whileHover: { scale: 1.1 },
-                        whileTap: { scale: 0.9 },
-                        className: "flex flex-col items-center"
-                    },
-                        React.createElement('div', { className: "w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center" },
-                            React.createElement('span', { className: "text-2xl" }, "💬")
-                        ),
-                        React.createElement('span', { className: "text-white text-sm font-medium mt-1" }, comments.length)
-                    )
-                ),
-
-                showComments && React.createElement(CommentsModal, {
-                    comments: comments,
-                    newComment: newComment,
-                    setNewComment: setNewComment,
-                    onAddComment: handleAddComment,
-                    onClose: () => setShowComments(false),
-                    currentUser: currentUser
-                })
-            );
-        }
-
-        // Comments Modal Component
-        function CommentsModal({ comments, newComment, setNewComment, onAddComment, onClose, currentUser }) {
-            return React.createElement('div', { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" },
-                React.createElement(motion.div, {
-                    initial: { scale: 0.9, opacity: 0 },
-                    animate: { scale: 1, opacity: 1 },
-                    className: "material-glass w-full max-w-md max-h-96 overflow-hidden flex flex-col"
-                },
-                    React.createElement('div', { className: "flex justify-between items-center mb-4" },
-                        React.createElement('h3', { className: "text-white text-lg font-semibold" }, "Comments"),
-                        React.createElement('button', { onClick: onClose, className: "text-white text-xl" }, "✕")
-                    ),
-                    
-                    React.createElement('div', { className: "flex-1 overflow-y-auto space-y-3 mb-4" },
-                        comments.length === 0 ? 
-                            React.createElement('p', { className: "text-white text-opacity-60 text-center py-8" }, "No comments yet") :
-                            comments.map(comment => 
-                                React.createElement('div', { key: comment.id, className: "bg-white bg-opacity-10 rounded-lg p-3" },
-                                    React.createElement('div', { className: "flex items-center space-x-2 mb-1" },
-                                        React.createElement('div', { className: "w-6 h-6 bg-white rounded-full" }),
-                                        React.createElement('span', { className: "text-white font-medium text-sm" }, comment.profiles?.username || 'User')
-                                    ),
-                                    React.createElement('p', { className: "text-white text-sm" }, comment.content)
-                                )
-                            )
-                    ),
-
-                    currentUser && React.createElement('div', { className: "flex space-x-2" },
-                        React.createElement('input', {
-                            type: "text",
-                            value: newComment,
-                            onChange: (e) => setNewComment(e.target.value),
-                            placeholder: "Add a comment...",
-                            className: "flex-1 px-3 py-2 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-60 border border-white border-opacity-30 focus:outline-none focus:border-opacity-60",
-                            onKeyPress: (e) => e.key === 'Enter' && onAddComment()
-                        }),
-                        React.createElement(motion.button, {
-                            onClick: onAddComment,
-                            whileHover: { scale: 1.05 },
-                            whileTap: { scale: 0.95 },
-                            className: "px-4 py-2 bg-white text-purple-600 rounded-lg font-medium"
-                        }, "Post")
-                    )
-                )
-            );
-        }
-
-        // Video Feed Component
-        function VideoFeed({ videos, currentUser }) {
-            const [currentIndex, setCurrentIndex] = useState(0);
-            const feedRef = useRef();
-
-            const handleScroll = (e) => {
-                const { scrollTop, clientHeight } = e.target;
-                const newIndex = Math.round(scrollTop / clientHeight);
-                if (newIndex !== currentIndex && newIndex >= 0 && newIndex < videos.length) {
-                    setCurrentIndex(newIndex);
-                }
-            };
-
-            if (videos.length === 0) {
-                return React.createElement('div', { className: "flex-1 flex items-center justify-center" },
-                    React.createElement('div', { className: "text-center text-white" },
-                        React.createElement('div', { className: "text-6xl mb-4" }, "🎬"),
-                        React.createElement('h2', { className: "text-2xl font-bold mb-2" }, "No videos yet"),
-                        React.createElement('p', { className: "text-white text-opacity-80" }, "Be the first to upload a video!")
-                    )
-                );
-            }
-
-            return React.createElement('div', {
-                ref: feedRef,
-                onScroll: handleScroll,
-                className: "flex-1 h-screen overflow-y-auto snap-y snap-mandatory scrollbar-hide"
-            },
-                videos.map((video, index) =>
-                    React.createElement('div', {
-                        key: video.id,
-                        className: "h-full snap-start flex items-center justify-center p-4"
-                    },
-                        React.createElement(VideoPlayer, {
-                            video: video,
-                            isActive: index === currentIndex,
-                            currentUser: currentUser
-                        })
-                    )
-                )
-            );
-        }
-
-        // Sidebar Component
-        function Sidebar({ onUploadClick, currentUser, onLogout }) {
-            return React.createElement('div', { className: "w-80 h-full p-6 hidden md:block" },
-                React.createElement('div', { className: "material-glass h-full flex flex-col" },
-                    React.createElement('div', { className: "flex items-center space-x-3 mb-8" },
-                        React.createElement('div', { className: "w-12 h-12 bg-white rounded-full flex items-center justify-center" },
-                            React.createElement('span', { className: "text-purple-600 font-bold" }, "T")
-                        ),
-                        React.createElement('div', null,
-                            React.createElement('h3', { className: "text-white font-semibold" }, currentUser?.user_metadata?.full_name || 'User'),
-                            React.createElement('p', { className: "text-white text-opacity-80 text-sm" }, `@${currentUser?.user_metadata?.preferred_username || 'user'}`)
-                        )
-                    ),
-
-                    React.createElement('div', { className: "space-y-4 flex-1" },
-                        React.createElement(motion.button, {
-                            onClick: onUploadClick,
-                            whileHover: { scale: 1.05 },
-                            whileTap: { scale: 0.95 },
-                            className: "w-full bg-white bg-opacity-20 text-white py-3 px-4 rounded-lg font-medium text-left flex items-center space-x-3"
-                        }, "📤 Upload Video")
-                    ),
-
-                    React.createElement(motion.button, {
-                        onClick: onLogout,
-                        whileHover: { scale: 1.05 },
-                        whileTap: { scale: 0.95 },
-                        className: "mt-auto bg-white bg-opacity-20 text-white py-3 px-4 rounded-lg font-medium"
-                    }, "Logout")
-                )
-            );
-        }
-
-        // Main App Component
-        function App() {
-            const [user, setUser] = useState(null);
-            const [videos, setVideos] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [showUpload, setShowUpload] = useState(false);
-
-            useEffect(() => {
-                // Check active session
-                supabase.auth.getSession().then(({ data: { session } }) => {
-                    setUser(session?.user || null);
-                    setLoading(false);
-                });
-
-                // Listen for auth changes
-                const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-                    setUser(session?.user || null);
-    setLoading(false);
-                });
-
-                return () => subscription.unsubscribe();
-            }, []);
-
-            useEffect(() => {
-                if (user) {
-                    loadVideos();
-                }
-            }, [user]);
-
-            const loadVideos = async () => {
-                const { data, error } = await supabase
-                    .from('videos')
-                    .select(`
-                        *,
-                        profiles (username, avatar_url),
-                        likes (id),
-                        comments (id)
-                    `)
-                    .order('created_at', { ascending: false });
-
-                if (data) {
-                    // Add like_count and comment_count
-                    const videosWithCounts = data.map(video => ({
-                        ...video,
-                        like_count: video.likes?.length || 0,
-                        comment_count: video.comments?.length || 0
-                    }));
-                    setVideos(videosWithCounts);
-                }
-            };
-
-            const handleLogout = async () => {
-                await supabase.auth.signOut();
-                setVideos([]);
-            };
-
-            if (loading) {
-                return React.createElement('div', { className: "min-h-screen gradient-bg flex items-center justify-center" },
-                    React.createElement(motion.div, {
-                        animate: { rotate: 360 },
-                        transition: { duration: 1, repeat: Infinity, ease: "linear" },
-                        className: "w-16 h-16 border-4 border-white border-opacity-30 border-t-white rounded-full"
-                    })
-                );
-            }
-
-            if (!user) {
-                return React.createElement(Auth);
-            }
-
-            return React.createElement('div', { className: "min-h-screen gradient-bg" },
-                React.createElement('div', { className: "flex h-screen" },
-                    React.createElement(Sidebar, {
-                        onUploadClick: () => setShowUpload(true),
-                        currentUser: user,
-                        onLogout: handleLogout
-                    }),
-                    
-                    React.createElement('div', { className: "flex-1 flex" },
-                        React.createElement(VideoFeed, { videos: videos, currentUser: user })
-                    )
-                ),
-
-                React.createElement(UploadModal, {
-                    isOpen: showUpload,
-                    onClose: () => setShowUpload(false),
-                    onUploadSuccess: loadVideos
-                })
-            );
-        }
-
-        // Render the app
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(App));
-    </script>
 </body>
 </html>
