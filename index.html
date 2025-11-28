@@ -1,144 +1,825 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>TajibTok</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{margin:0;font-family:Arial;background:#0a0a0f;color:white;display:flex;height:100vh;}
-.material-glass{background: rgba(255, 255, 255, 0.25);backdrop-filter: blur(6px);border: 2px solid rgba(255,255,255,0.45);border-radius:8px;padding:20px;box-shadow:0 6px 24px rgba(31,38,135,0.65);}
-#sidebar{width:260px;display:flex;flex-direction:column;gap:20px;padding:20px;}
-#main{flex:1;display:flex;justify-content:center;align-items:center;}
-#rightbar{width:160px;display:flex;flex-direction:column;gap:20px;align-items:center;padding:20px;}
-#progressBox{display:none;width:100%;margin-top:10px;}
-#progressBar{width:0%;height:12px;background:#00ffb7;border-radius:6px;transition:0.2s;}
-video{width:340px;height:600px;border-radius:20px;object-fit:cover;background:black;}
-.circleBtn{width:60px;height:60px;border-radius:50%;background:white;color:black;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:0.2s;}
-.circleBtn:hover{transform:scale(1.1);}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TajibTok</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .material-glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(6px);
+            border: 2px solid rgba(255, 255, 255, 0.45);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 6px 24px rgba(31, 38, 135, 0.65);
+        }
+
+        /* Login Page Styles */
+        #login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 8px;
+            background: #ff2d55;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            background: #ff1c40;
+            transform: translateY(-2px);
+        }
+
+        /* Main App Styles */
+        #main-app {
+            display: none;
+            height: 100vh;
+            padding: 10px;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 15px;
+            height: 100%;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            margin-right: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+        }
+
+        .upload-btn {
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            background: #ff2d55;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            background: #ff1c40;
+            transform: translateY(-2px);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+        }
+
+        /* Video Feed Styles */
+        .video-feed {
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        .video-container {
+            height: 100%;
+            position: relative;
+            transition: transform 0.5s ease;
+        }
+
+        .video-item {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 20px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 12px;
+            transition: opacity 0.5s ease;
+        }
+
+        .video-player {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .video-info {
+            margin-top: 20px;
+        }
+
+        .video-caption {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+        }
+
+        .video-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Action Buttons Styles */
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 40px;
+            gap: 25px;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .action-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .action-count {
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        /* Upload Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .upload-modal-content {
+            width: 90%;
+            max-width: 500px;
+            padding: 30px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: #ff2d55;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .upload-status {
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Popup Styles */
+        .popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            z-index: 1001;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+            }
+
+            .sidebar {
+                flex-direction: row;
+                justify-content: space-between;
+                height: auto;
+                margin-bottom: 10px;
+            }
+
+            .user-info {
+                margin-bottom: 0;
+            }
+
+            .upload-btn {
+                margin: 0 10px;
+            }
+
+            .action-buttons {
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 10px 0;
+            }
+
+            .action-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
 </head>
 <body>
+    <!-- Login Page -->
+    <div id="login-page">
+        <div class="login-container material-glass">
+            <div class="logo">TajibTok</div>
+            <form class="login-form">
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="button" class="login-btn" onclick="login()">Login</button>
+            </form>
+        </div>
+    </div>
 
-<!-- LEFT SIDEBAR -->
-<div id="sidebar" class="material-glass">
-<h2>TajibTok</h2>
-<div><b>Account:</b> Rohind</div>
+    <!-- Main App -->
+    <div id="main-app">
+        <div class="app-container">
+            <!-- Left Sidebar -->
+            <div class="sidebar material-glass">
+                <div class="user-info">
+                    <div class="avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div id="logged-user">User</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">Welcome back!</div>
+                    </div>
+                </div>
+                <button class="upload-btn" onclick="openUploadModal()">
+                    <i class="fas fa-upload"></i> Upload Video
+                </button>
+                <input type="text" class="search-input" placeholder="Search videos...">
+            </div>
 
-<input type="file" id="fileInput" accept="video/*">
-<button id="uploadBtn">Upload Tajib</button>
+            <!-- Center Video Feed -->
+            <div class="video-feed">
+                <div class="video-container" id="video-container">
+                    <!-- Videos will be dynamically added here -->
+                </div>
+            </div>
 
-<div id="progressBox" class="material-glass">
-  <div id="progressBar"></div>
-  <small id="progressText">0%</small>
-</div>
+            <!-- Right Sidebar -->
+            <div class="sidebar material-glass">
+                <div class="action-buttons">
+                    <div class="action-btn" onclick="likeVideo()">
+                        <div class="action-icon">❤️</div>
+                        <div class="action-count" id="like-count">0</div>
+                    </div>
+                    <div class="action-btn" onclick="openComments()">
+                        <div class="action-icon">💬</div>
+                        <div class="action-count" id="comment-count">0</div>
+                    </div>
+                    <div class="action-btn" onclick="shareVideo()">
+                        <div class="action-icon">↗️</div>
+                        <div class="action-count" id="share-count">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<input id="searchBox" class="material-glass" placeholder="Search tajibs...">
-</div>
+    <!-- Upload Modal -->
+    <div class="modal" id="upload-modal">
+        <div class="upload-modal-content material-glass">
+            <button class="close-btn" onclick="closeUploadModal()">&times;</button>
+            <h2>Upload Video</h2>
+            <input type="file" id="video-file" accept="video/*" style="display: none;">
+            <button class="upload-btn" onclick="document.getElementById('video-file').click()">
+                <i class="fas fa-folder-open"></i> Choose Video
+            </button>
+            <div id="file-info" style="margin: 10px 0;"></div>
+            <div class="progress-bar">
+                <div class="progress" id="upload-progress"></div>
+            </div>
+            <div class="upload-status" id="upload-status"></div>
+            <button class="upload-btn" id="upload-button" onclick="uploadVideo()" disabled>
+                <i class="fas fa-cloud-upload-alt"></i> Upload
+            </button>
+        </div>
+    </div>
 
-<!-- MIDDLE PLAYER -->
-<div id="main">
-  <video id="player" controls></video>
-</div>
+    <!-- Popup Messages -->
+    <div class="popup" id="popup"></div>
 
-<!-- RIGHT SIDEBAR -->
-<div id="rightbar" class="material-glass">
-  <div class="circleBtn">❤️</div>
-  <div class="circleBtn">💬</div>
-  <div class="circleBtn">↗️</div>
-</div>
+    <script>
+        // Mock Firebase and ImageKit for demo purposes
+        // In a real implementation, you would use the actual Firebase and ImageKit SDKs
+        
+        // Mock Firebase Firestore
+        const mockFirestore = {
+            videos: [
+                {
+                    id: 1,
+                    url: "https://assets.mixkit.co/videos/preview/mixkit-tree-with-yellow-flowers-1173-large.mp4",
+                    caption: "Beautiful nature scenery with yellow flowers",
+                    likes: 1245,
+                    comments: 89,
+                    shares: 34
+                },
+                {
+                    id: 2,
+                    url: "https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4",
+                    caption: "Calming waves in the ocean",
+                    likes: 892,
+                    comments: 45,
+                    shares: 21
+                },
+                {
+                    id: 3,
+                    url: "https://assets.mixkit.co/videos/preview/mixkit-going-down-a-curved-highway-down-a-mountain-41576-large.mp4",
+                    caption: "Driving through mountain roads",
+                    likes: 1567,
+                    comments: 112,
+                    shares: 67
+                }
+            ],
+            addVideo: function(video) {
+                video.id = this.videos.length + 1;
+                this.videos.unshift(video);
+                return Promise.resolve(video);
+            },
+            getVideos: function() {
+                return Promise.resolve(this.videos);
+            }
+        };
 
-<!-- FIREBASE SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js"></script>
+        // Mock ImageKit Upload
+        const mockImageKit = {
+            upload: function(file, onProgress) {
+                return new Promise((resolve, reject) => {
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += 5;
+                        onProgress(progress);
+                        
+                        if (progress >= 100) {
+                            clearInterval(interval);
+                            resolve({
+                                url: URL.createObjectURL(file),
+                                fileId: 'mock_' + Date.now()
+                            });
+                        }
+                    }, 100);
+                });
+            }
+        };
 
-<script>
-/* ================= FIREBASE CONFIG ================= */
-const firebaseConfig = {
-  apiKey: "YOUR_FB_KEY",
-  authDomain: "YOUR_FB_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APPID"
-};
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+        // App State
+        let currentUser = null;
+        let currentVideoIndex = 0;
+        let videos = [];
 
-/* ================= IMAGEKIT CONFIG ================= */
-const IMAGEKIT_UPLOAD_URL = "https://upload.imagekit.io/api/v1/files/upload";
-const IMAGEKIT_PRIVATE_KEY = "private_BdWBQOhxDNprEqkzJ8sdZmSI3U0=";
-const IMAGEKIT_FOLDER = "/tajibs";
+        // DOM Elements
+        const loginPage = document.getElementById('login-page');
+        const mainApp = document.getElementById('main-app');
+        const loggedUser = document.getElementById('logged-user');
+        const videoContainer = document.getElementById('video-container');
+        const uploadModal = document.getElementById('upload-modal');
+        const popup = document.getElementById('popup');
+        const likeCount = document.getElementById('like-count');
+        const commentCount = document.getElementById('comment-count');
+        const shareCount = document.getElementById('share-count');
+        const videoFileInput = document.getElementById('video-file');
+        const uploadButton = document.getElementById('upload-button');
+        const uploadProgress = document.getElementById('upload-progress');
+        const uploadStatus = document.getElementById('upload-status');
+        const fileInfo = document.getElementById('file-info');
 
-/* ================= ELEMENTS ================= */
-const fileInput = document.getElementById("fileInput");
-const uploadBtn = document.getElementById("uploadBtn");
-const progressBox = document.getElementById("progressBox");
-const progressBar = document.getElementById("progressBar");
-const progressText = document.getElementById("progressText");
-const player = document.getElementById("player");
-
-/* ================= UPLOAD FUNCTION ================= */
-async function uploadToImageKit(file, onProgress){
-  return new Promise((resolve,reject)=>{
-    const form = new FormData();
-    form.append("file",file);
-    form.append("fileName",Date.now()+"-"+file.name);
-    form.append("folder", IMAGEKIT_FOLDER);
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", IMAGEKIT_UPLOAD_URL,true);
-    xhr.setRequestHeader("Authorization","Basic "+btoa(IMAGEKIT_PRIVATE_KEY+":"));
-
-    xhr.upload.onprogress = (e)=>{
-      if(e.lengthComputable){
-        const percent = Math.round((e.loaded/e.total)*100);
-        onProgress(percent);
-      }
-    }
-
-    xhr.onreadystatechange = ()=>{
-      if(xhr.readyState===4){
-        if(xhr.status===200){
-          resolve(JSON.parse(xhr.responseText));
-        }else{
-          reject("Upload failed: "+xhr.responseText);
+        // Initialize the app
+        function init() {
+            loadVideos();
+            setupEventListeners();
         }
-      }
-    }
 
-    xhr.send(form);
-  });
-}
+        // Setup event listeners
+        function setupEventListeners() {
+            // Video file selection
+            videoFileInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    const file = this.files[0];
+                    fileInfo.innerHTML = `Selected: ${file.name} (${formatFileSize(file.size)})`;
+                    uploadButton.disabled = false;
+                } else {
+                    fileInfo.innerHTML = '';
+                    uploadButton.disabled = true;
+                }
+            });
 
-/* ================= BUTTON CLICK ================= */
-uploadBtn.onclick = async ()=>{
-  const file = fileInput.files[0];
-  if(!file) return alert("Pick a video!");
+            // Video swipe navigation
+            let startY = 0;
+            let endY = 0;
+            
+            videoContainer.addEventListener('touchstart', function(e) {
+                startY = e.touches[0].clientY;
+            });
+            
+            videoContainer.addEventListener('touchend', function(e) {
+                endY = e.changedTouches[0].clientY;
+                handleSwipe();
+            });
+            
+            // Mouse wheel navigation for desktop
+            videoContainer.addEventListener('wheel', function(e) {
+                if (e.deltaY > 0) {
+                    nextVideo();
+                } else {
+                    prevVideo();
+                }
+            });
+        }
 
-  progressBox.style.display="block";
-  progressBar.style.width="0%";
-  progressText.innerText="0%";
+        // Handle swipe gestures
+        function handleSwipe() {
+            const diff = startY - endY;
+            
+            if (Math.abs(diff) > 50) { // Minimum swipe distance
+                if (diff > 0) {
+                    nextVideo();
+                } else {
+                    prevVideo();
+                }
+            }
+        }
 
-  try{
-    const result = await uploadToImageKit(file,(percent)=>{
-      progressBar.style.width=percent+"%";
-      progressText.innerText=percent+"%";
-    });
+        // Login function
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showPopup('Please enter both username and password', 'error');
+                return;
+            }
+            
+            currentUser = username;
+            loggedUser.textContent = username;
+            loginPage.style.display = 'none';
+            mainApp.style.display = 'block';
+            
+            showPopup(`Welcome to TajibTok, ${username}!`, 'success');
+        }
 
-    const videoURL = result.url;
-    player.src = videoURL;
+        // Load videos from Firebase
+        function loadVideos() {
+            mockFirestore.getVideos().then(fetchedVideos => {
+                videos = fetchedVideos;
+                renderVideos();
+            });
+        }
 
-    // Save to Firebase
-    await db.collection("tajibs").add({
-      videoURL: videoURL,
-      createdAt: Date.now()
-    });
+        // Render videos in the feed
+        function renderVideos() {
+            videoContainer.innerHTML = '';
+            
+            videos.forEach((video, index) => {
+                const videoItem = document.createElement('div');
+                videoItem.className = 'video-item';
+                videoItem.style.display = index === 0 ? 'flex' : 'none';
+                
+                videoItem.innerHTML = `
+                    <video class="video-player" loop muted>
+                        <source src="${video.url}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-info">
+                        <div class="video-caption">${video.caption}</div>
+                        <div class="video-stats">
+                            <span>❤️ ${video.likes}</span>
+                            <span>💬 ${video.comments}</span>
+                            <span>↗️ ${video.shares}</span>
+                        </div>
+                    </div>
+                `;
+                
+                videoContainer.appendChild(videoItem);
+                
+                // Auto-play the first video
+                if (index === 0) {
+                    setTimeout(() => {
+                        const videoElement = videoItem.querySelector('video');
+                        if (videoElement) {
+                            videoElement.play().catch(e => console.log('Autoplay prevented:', e));
+                        }
+                    }, 500);
+                }
+            });
+            
+            updateActionCounts();
+        }
 
-    progressText.innerText="Upload complete!";
-  }catch(err){
-    alert("Error: "+err);
-  }
-};
-</script>
+        // Update action counts for current video
+        function updateActionCounts() {
+            if (videos.length > 0) {
+                const currentVideo = videos[currentVideoIndex];
+                likeCount.textContent = currentVideo.likes;
+                commentCount.textContent = currentVideo.comments;
+                shareCount.textContent = currentVideo.shares;
+            }
+        }
+
+        // Navigate to next video
+        function nextVideo() {
+            if (currentVideoIndex < videos.length - 1) {
+                const currentVideoElement = document.querySelectorAll('.video-item')[currentVideoIndex];
+                const nextVideoElement = document.querySelectorAll('.video-item')[currentVideoIndex + 1];
+                
+                currentVideoElement.style.display = 'none';
+                nextVideoElement.style.display = 'flex';
+                
+                // Pause current video
+                const currentVideoPlayer = currentVideoElement.querySelector('video');
+                if (currentVideoPlayer) {
+                    currentVideoPlayer.pause();
+                }
+                
+                // Play next video
+                const nextVideoPlayer = nextVideoElement.querySelector('video');
+                if (nextVideoPlayer) {
+                    nextVideoPlayer.play().catch(e => console.log('Autoplay prevented:', e));
+                }
+                
+                currentVideoIndex++;
+                updateActionCounts();
+            }
+        }
+
+        // Navigate to previous video
+        function prevVideo() {
+            if (currentVideoIndex > 0) {
+                const currentVideoElement = document.querySelectorAll('.video-item')[currentVideoIndex];
+                const prevVideoElement = document.querySelectorAll('.video-item')[currentVideoIndex - 1];
+                
+                currentVideoElement.style.display = 'none';
+                prevVideoElement.style.display = 'flex';
+                
+                // Pause current video
+                const currentVideoPlayer = currentVideoElement.querySelector('video');
+                if (currentVideoPlayer) {
+                    currentVideoPlayer.pause();
+                }
+                
+                // Play previous video
+                const prevVideoPlayer = prevVideoElement.querySelector('video');
+                if (prevVideoPlayer) {
+                    prevVideoPlayer.play().catch(e => console.log('Autoplay prevented:', e));
+                }
+                
+                currentVideoIndex--;
+                updateActionCounts();
+            }
+        }
+
+        // Open upload modal
+        function openUploadModal() {
+            uploadModal.style.display = 'flex';
+            resetUploadForm();
+        }
+
+        // Close upload modal
+        function closeUploadModal() {
+            uploadModal.style.display = 'none';
+            resetUploadForm();
+        }
+
+        // Reset upload form
+        function resetUploadForm() {
+            videoFileInput.value = '';
+            fileInfo.innerHTML = '';
+            uploadButton.disabled = true;
+            uploadProgress.style.width = '0%';
+            uploadStatus.innerHTML = '';
+        }
+
+        // Upload video function
+        function uploadVideo() {
+            const file = videoFileInput.files[0];
+            
+            if (!file) {
+                showPopup('Pick a video!', 'error');
+                return;
+            }
+            
+            uploadButton.disabled = true;
+            uploadStatus.innerHTML = 'Uploading...';
+            
+            // Mock upload with progress
+            mockImageKit.upload(file, (progress) => {
+                uploadProgress.style.width = `${progress}%`;
+            }).then(result => {
+                // Save to Firebase
+                const newVideo = {
+                    url: result.url,
+                    caption: `My video ${new Date().toLocaleDateString()}`,
+                    likes: 0,
+                    comments: 0,
+                    shares: 0
+                };
+                
+                return mockFirestore.addVideo(newVideo);
+            }).then(savedVideo => {
+                uploadStatus.innerHTML = 'Upload complete!';
+                showPopup('Video uploaded successfully!', 'success');
+                
+                // Add to local videos array and re-render
+                videos.unshift(savedVideo);
+                renderVideos();
+                
+                // Reset and close modal after delay
+                setTimeout(() => {
+                    closeUploadModal();
+                }, 1500);
+            }).catch(error => {
+                uploadStatus.innerHTML = 'Error: Upload failed';
+                showPopup('Upload failed. Please try again.', 'error');
+                uploadButton.disabled = false;
+            });
+        }
+
+        // Action functions
+        function likeVideo() {
+            if (videos.length > 0) {
+                videos[currentVideoIndex].likes++;
+                updateActionCounts();
+                showPopup('Liked! ❤️', 'success');
+            }
+        }
+
+        function openComments() {
+            showPopup('Comments feature coming soon!', 'info');
+        }
+
+        function shareVideo() {
+            if (videos.length > 0) {
+                videos[currentVideoIndex].shares++;
+                updateActionCounts();
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'TajibTok Video',
+                        text: 'Check out this video on TajibTok!',
+                        url: window.location.href,
+                    })
+                    .then(() => showPopup('Shared successfully!', 'success'))
+                    .catch(() => showPopup('Share dialog closed', 'info'));
+                } else {
+                    showPopup('Link copied to clipboard!', 'success');
+                }
+            }
+        }
+
+        // Utility functions
+        function showPopup(message, type) {
+            popup.textContent = message;
+            popup.style.display = 'block';
+            popup.style.background = type === 'error' ? 'rgba(255, 0, 0, 0.7)' : 
+                                    type === 'success' ? 'rgba(0, 200, 0, 0.7)' : 
+                                    'rgba(0, 0, 0, 0.7)';
+            
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 3000);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
