@@ -230,6 +230,73 @@
             color: rgba(255, 255, 255, 0.6);
         }
 
+        /* Shared Videos Section */
+        .shared-videos-section {
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .shared-videos-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .shared-videos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .shared-video-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .shared-video-item:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .shared-video-thumbnail {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            margin-right: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .shared-video-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .shared-video-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shared-video-sharer {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
         .logout-btn {
             display: flex;
             align-items: center;
@@ -308,6 +375,7 @@
             padding: 20px;
             transition: opacity 0.3s ease;
             opacity: 0;
+            z-index: 10;
         }
 
         .video-player-container:hover .custom-video-controls,
@@ -431,6 +499,7 @@
             background: linear-gradient(transparent, rgba(0,0,0,0.7));
             border-radius: 0 0 16px 16px;
             animation: slideUp 0.5s ease 0.3s both;
+            z-index: 5;
         }
 
         .video-caption {
@@ -943,6 +1012,10 @@
                 flex: 1;
             }
 
+            .shared-videos-section {
+                display: none;
+            }
+
             .logout-btn {
                 margin-top: 0;
             }
@@ -1009,6 +1082,16 @@
                 
                 <input type="text" class="search-input" placeholder="Search videos...">
                 
+                <!-- Shared Videos Section -->
+                <div class="shared-videos-section">
+                    <div class="shared-videos-title">
+                        <i class="fas fa-share-square"></i> Shared with you
+                    </div>
+                    <div class="shared-videos-list" id="shared-videos-list">
+                        <!-- Shared videos will appear here -->
+                    </div>
+                </div>
+                
                 <button class="logout-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
@@ -1037,7 +1120,7 @@
             <!-- Right Sidebar -->
             <div class="sidebar material-glass">
                 <div class="action-buttons">
-                    <div class="action-btn" id="like-btn" onclick="likeVideo()">
+                    <div class="action-btn" id="like-btn" onclick="toggleLikeVideo()">
                         <div class="action-icon">❤️</div>
                         <div class="action-count" id="like-count">0</div>
                     </div>
@@ -1215,6 +1298,7 @@
         const usersList = document.getElementById('users-list');
         const commentsList = document.getElementById('comments-list');
         const commentInput = document.getElementById('comment-input');
+        const sharedVideosList = document.getElementById('shared-videos-list');
 
         // Initialize the app
         function init() {
@@ -1344,6 +1428,7 @@
             mainApp.style.display = 'block';
             
             loadVideos();
+            loadSharedVideos();
             
             showPopup(`Welcome to TajibTok, ${user.displayName || 'User'}!`, 'success');
         }
@@ -1445,6 +1530,81 @@
                     console.error("Error loading user videos:", error);
                     myVideosContainer.innerHTML = '<p>Error loading your videos.</p>';
                 });
+        }
+
+        // Load shared videos for current user
+        function loadSharedVideos() {
+            if (!currentUser) return;
+            
+            db.collection("sharedVideos")
+                .where("sharedTo", "==", currentUser.uid)
+                .orderBy("sharedAt", "desc")
+                .get()
+                .then((querySnapshot) => {
+                    sharedVideosList.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        sharedVideosList.innerHTML = '<div style="padding: 10px; text-align: center; opacity: 0.7; font-size: 0.85rem;">No videos shared with you yet</div>';
+                        return;
+                    }
+                    
+                    querySnapshot.forEach((doc) => {
+                        const sharedData = doc.data();
+                        const sharedItem = document.createElement('div');
+                        sharedItem.className = 'shared-video-item';
+                        sharedItem.onclick = () => playSharedVideo(sharedData.videoId);
+                        sharedItem.innerHTML = `
+                            <div class="shared-video-thumbnail">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <div class="shared-video-info">
+                                <div class="shared-video-title">${sharedData.videoTitle || 'Shared Video'}</div>
+                                <div class="shared-video-sharer">Shared by ${sharedData.sharedByName}</div>
+                            </div>
+                        `;
+                        sharedVideosList.appendChild(sharedItem);
+                    });
+                })
+                .catch((error) => {
+                    console.error("Error loading shared videos:", error);
+                    sharedVideosList.innerHTML = '<div style="padding: 10px; text-align: center; opacity: 0.7; font-size: 0.85rem;">Error loading shared videos</div>';
+                });
+        }
+
+        // Play a shared video
+        function playSharedVideo(videoId) {
+            const videoIndex = videos.findIndex(v => v.id === videoId);
+            if (videoIndex !== -1) {
+                // Switch to feed tab
+                switchTab('feed');
+                
+                // Set current video to the shared one
+                const currentVideoElement = document.querySelectorAll('.video-item')[currentVideoIndex];
+                const targetVideoElement = document.querySelectorAll('.video-item')[videoIndex];
+                
+                if (currentVideoElement) {
+                    currentVideoElement.classList.remove('active');
+                    const currentVideoPlayer = currentVideoElement.querySelector('video');
+                    if (currentVideoPlayer) {
+                        currentVideoPlayer.pause();
+                    }
+                }
+                
+                if (targetVideoElement) {
+                    targetVideoElement.classList.add('active');
+                    const targetVideoPlayer = targetVideoElement.querySelector('video');
+                    if (targetVideoPlayer) {
+                        targetVideoPlayer.play().catch(e => console.log('Autoplay prevented:', e));
+                    }
+                    
+                    currentVideoIndex = videoIndex;
+                    currentVideoId = videos[videoIndex].id;
+                    updateActionCounts();
+                    checkIfUserLikedVideo();
+                }
+            } else {
+                showPopup('Video not found in feed', 'error');
+            }
         }
 
         // Get demo videos (fallback)
@@ -1951,8 +2111,8 @@
                 });
         }
 
-        // Like video function (with one like per user limit)
-        function likeVideo() {
+        // Toggle like video function
+        function toggleLikeVideo() {
             if (!currentUser || !currentVideoId) {
                 showPopup('Please sign in to like videos', 'error');
                 return;
@@ -1962,29 +2122,43 @@
             if (!currentVideo) return;
             
             // Check if user already liked this video
-            if (currentVideo.likedBy && currentVideo.likedBy.includes(currentUser.uid)) {
-                showPopup('You already liked this video!', 'info');
-                return;
-            }
+            const hasLiked = currentVideo.likedBy && currentVideo.likedBy.includes(currentUser.uid);
             
             // Update in Firestore
-            const updatedLikedBy = currentVideo.likedBy ? [...currentVideo.likedBy, currentUser.uid] : [currentUser.uid];
+            let updatedLikedBy;
+            let likeIncrement;
+            
+            if (hasLiked) {
+                // Remove like
+                updatedLikedBy = currentVideo.likedBy.filter(id => id !== currentUser.uid);
+                likeIncrement = -1;
+            } else {
+                // Add like
+                updatedLikedBy = currentVideo.likedBy ? [...currentVideo.likedBy, currentUser.uid] : [currentUser.uid];
+                likeIncrement = 1;
+            }
             
             db.collection("tajibs").doc(currentVideoId).update({
-                likes: firebase.firestore.FieldValue.increment(1),
+                likes: firebase.firestore.FieldValue.increment(likeIncrement),
                 likedBy: updatedLikedBy
             })
             .then(() => {
                 // Update local state
-                currentVideo.likes++;
+                currentVideo.likes += likeIncrement;
                 currentVideo.likedBy = updatedLikedBy;
                 updateActionCounts();
-                likeBtn.classList.add('liked');
-                showPopup('Liked! ❤️', 'success');
+                
+                if (hasLiked) {
+                    likeBtn.classList.remove('liked');
+                    showPopup('Like removed', 'info');
+                } else {
+                    likeBtn.classList.add('liked');
+                    showPopup('Liked! ❤️', 'success');
+                }
             })
             .catch((error) => {
-                console.error("Error liking video:", error);
-                showPopup('Error liking video', 'error');
+                console.error("Error toggling like:", error);
+                showPopup('Error toggling like', 'error');
             });
         }
 
@@ -2104,39 +2278,47 @@
             usersList.innerHTML = '<p>Loading users...</p>';
             selectedUsers = [];
             
-            // In a real app, you would fetch actual users from Firestore
-            const mockUsers = [
-                { id: 'user1', name: 'Alex Johnson', email: 'alex.johnson@example.com', photo: null },
-                { id: 'user2', name: 'Maria Garcia', email: 'maria.garcia@example.com', photo: null },
-                { id: 'user3', name: 'James Wilson', email: 'james.wilson@example.com', photo: null },
-                { id: 'user4', name: 'Sarah Chen', email: 'sarah.chen@example.com', photo: null },
-                { id: 'user5', name: 'David Kim', email: 'david.kim@example.com', photo: null }
-            ];
-            
-            usersList.innerHTML = '';
-            mockUsers.forEach(user => {
-                const userItem = document.createElement('div');
-                userItem.className = 'user-item';
-                userItem.dataset.userId = user.id;
-                userItem.innerHTML = `
-                    <div class="user-avatar">
-                        ${user.photo ? `<img src="${user.photo}" alt="${user.name}">` : '<i class="fas fa-user"></i>'}
-                    </div>
-                    <div class="user-details">
-                        <div class="user-name">${user.name}</div>
-                        <div class="user-email">${user.email}</div>
-                    </div>
-                `;
-                userItem.addEventListener('click', () => {
-                    userItem.classList.toggle('selected');
-                    if (userItem.classList.contains('selected')) {
-                        selectedUsers.push(user.id);
-                    } else {
-                        selectedUsers = selectedUsers.filter(id => id !== user.id);
+            // Get all users from Firestore (excluding current user)
+            db.collection("users").get()
+                .then((querySnapshot) => {
+                    usersList.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        usersList.innerHTML = '<p>No other users found</p>';
+                        return;
                     }
+                    
+                    querySnapshot.forEach((doc) => {
+                        const userData = doc.data();
+                        if (userData.uid === currentUser.uid) return; // Skip current user
+                        
+                        const userItem = document.createElement('div');
+                        userItem.className = 'user-item';
+                        userItem.dataset.userId = userData.uid;
+                        userItem.innerHTML = `
+                            <div class="user-avatar">
+                                ${userData.photoURL ? `<img src="${userData.photoURL}" alt="${userData.displayName}">` : '<i class="fas fa-user"></i>'}
+                            </div>
+                            <div class="user-details">
+                                <div class="user-name">${userData.displayName || 'User'}</div>
+                                <div class="user-email">${userData.email || ''}</div>
+                            </div>
+                        `;
+                        userItem.addEventListener('click', () => {
+                            userItem.classList.toggle('selected');
+                            if (userItem.classList.contains('selected')) {
+                                selectedUsers.push(userData.uid);
+                            } else {
+                                selectedUsers = selectedUsers.filter(id => id !== userData.uid);
+                            }
+                        });
+                        usersList.appendChild(userItem);
+                    });
+                })
+                .catch((error) => {
+                    console.error("Error loading users:", error);
+                    usersList.innerHTML = '<p>Error loading users</p>';
                 });
-                usersList.appendChild(userItem);
-            });
         }
 
         // Share video with selected users
@@ -2146,19 +2328,42 @@
                 return;
             }
             
-            showPopup(`Video shared with ${selectedUsers.length} user(s)!`, 'success');
+            const currentVideo = videos.find(v => v.id === currentVideoId);
+            if (!currentVideo) return;
             
-            // Update share count
-            db.collection("tajibs").doc(currentVideoId).update({
-                shares: firebase.firestore.FieldValue.increment(selectedUsers.length)
-            })
-            .then(() => {
-                updateActionCounts();
-                closeShareModal();
-            })
-            .catch((error) => {
-                console.error("Error updating share count:", error);
+            // Create shared video records
+            const batch = db.batch();
+            const sharedAt = firebase.firestore.FieldValue.serverTimestamp();
+            
+            selectedUsers.forEach(userId => {
+                const sharedVideoRef = db.collection("sharedVideos").doc();
+                batch.set(sharedVideoRef, {
+                    videoId: currentVideoId,
+                    videoTitle: currentVideo.caption,
+                    sharedBy: currentUser.uid,
+                    sharedByName: currentUser.displayName,
+                    sharedTo: userId,
+                    sharedAt: sharedAt
+                });
             });
+            
+            batch.commit()
+                .then(() => {
+                    // Update share count
+                    return db.collection("tajibs").doc(currentVideoId).update({
+                        shares: firebase.firestore.FieldValue.increment(selectedUsers.length)
+                    });
+                })
+                .then(() => {
+                    showPopup(`Video shared with ${selectedUsers.length} user(s)!`, 'success');
+                    updateActionCounts();
+                    closeShareModal();
+                    loadSharedVideos(); // Refresh shared videos list
+                })
+                .catch((error) => {
+                    console.error("Error sharing video:", error);
+                    showPopup('Error sharing video', 'error');
+                });
         }
 
         // Utility functions
