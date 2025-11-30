@@ -1248,10 +1248,8 @@
             appId: "1:356344033975:web:bfd6692cedfbb8133ed332"
         };
 
-        // ImageKit Configuration
-        const IMAGEKIT_UPLOAD_URL = "https://upload.imagekit.io/api/v1/files/upload";
-        const IMAGEKIT_PRIVATE_KEY = "private_BdWBQOhxDNprEqkzJ8sdZmSI3U0=";
-        const IMAGEKIT_FOLDER = "/tajibs";
+        // Catbox Upload URL
+        const CATBOX_UPLOAD_URL = "https://catbox.moe/user/api.php";
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
@@ -1371,10 +1369,10 @@
                 }
             });
             
-            // Keyboard navigation
+            // Keyboard navigation - only up and down arrows, no space bar
             document.addEventListener('keydown', function(e) {
                 if (feedPage.style.display !== 'none') {
-                    if (e.key === 'ArrowDown' || e.key === ' ') {
+                    if (e.key === 'ArrowDown') {
                         e.preventDefault();
                         nextVideo();
                     } else if (e.key === 'ArrowUp') {
@@ -1427,10 +1425,27 @@
             loginPage.style.display = 'none';
             mainApp.style.display = 'block';
             
+            // Create/update user document in Firestore
+            createUserDocument(user);
+            
             loadVideos();
             loadSharedVideos();
             
             showPopup(`Welcome to TajibTok, ${user.displayName || 'User'}!`, 'success');
+        }
+
+        // Create/update user document in Firestore
+        function createUserDocument(user) {
+            db.collection("users").doc(user.uid).set({
+                uid: user.uid,
+                displayName: user.displayName,
+                email: user.email,
+                photoURL: user.photoURL,
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true })
+            .catch((error) => {
+                console.error("Error creating user document:", error);
+            });
         }
 
         // Logout function
@@ -1495,6 +1510,12 @@
                 .get()
                 .then((querySnapshot) => {
                     myVideosContainer.innerHTML = '';
+                    
+                    if (querySnapshot.empty) {
+                        myVideosContainer.innerHTML = '<p style="text-align: center; padding: 40px; opacity: 0.7;">You haven\'t uploaded any videos yet.</p>';
+                        return;
+                    }
+                    
                     querySnapshot.forEach((doc) => {
                         const videoData = doc.data();
                         const videoCard = document.createElement('div');
@@ -1521,14 +1542,10 @@
                         `;
                         myVideosContainer.appendChild(videoCard);
                     });
-                    
-                    if (querySnapshot.empty) {
-                        myVideosContainer.innerHTML = '<p>You haven\'t uploaded any videos yet.</p>';
-                    }
                 })
                 .catch((error) => {
                     console.error("Error loading user videos:", error);
-                    myVideosContainer.innerHTML = '<p>Error loading your videos.</p>';
+                    myVideosContainer.innerHTML = '<p style="text-align: center; padding: 40px; opacity: 0.7;">Error loading your videos.</p>';
                 });
         }
 
@@ -1937,35 +1954,37 @@
             videoDescription.value = '';
         }
 
-        // Upload video to ImageKit
-        async function uploadToImageKit(file, onProgress) {
+        // Upload video to Catbox
+        async function uploadToCatbox(file, onProgress) {
             return new Promise((resolve, reject) => {
-                const form = new FormData();
-                form.append("file", file);
-                form.append("fileName", Date.now() + "-" + file.name);
-                form.append("folder", IMAGEKIT_FOLDER);
+                const formData = new FormData();
+                formData.append("reqtype", "fileupload");
+                formData.append("fileToUpload", file);
 
                 const xhr = new XMLHttpRequest();
-                xhr.open("POST", IMAGEKIT_UPLOAD_URL, true);
-                xhr.setRequestHeader("Authorization", "Basic " + btoa(IMAGEKIT_PRIVATE_KEY + ":"));
 
-                xhr.upload.onprogress = (e) => {
+                xhr.upload.addEventListener("progress", (e) => {
                     if (e.lengthComputable) {
                         const percent = Math.round((e.loaded / e.total) * 100);
                         onProgress(percent);
                     }
-                };
+                });
 
-                xhr.onreadystatechange = () => {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status === 200) {
-                            resolve(JSON.parse(xhr.responseText));
-                        } else {
-                            reject("Upload failed: " + xhr.responseText);
-                        }
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        const link = xhr.responseText.trim();
+                        resolve({ url: link });
+                    } else {
+                        reject("Upload failed: " + xhr.statusText);
                     }
                 };
-                xhr.send(form);
+
+                xhr.onerror = function () {
+                    reject("Upload failed due to network error.");
+                };
+
+                xhr.open("POST", CATBOX_UPLOAD_URL);
+                xhr.send(formData);
             });
         }
 
@@ -1998,7 +2017,7 @@
             uploadButton.disabled = true;
             uploadStatus.innerHTML = 'Uploading...';
             
-            uploadToImageKit(file, (progress) => {
+            uploadToCatbox(file, (progress) => {
                 uploadProgress.style.width = `${progress}%`;
             }).then(result => {
                 const newVideo = {
